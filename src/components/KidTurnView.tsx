@@ -6,6 +6,7 @@ import { PushSubscribe } from "./PushSubscribe";
 import { RoutineToggle } from "./RoutineToggle";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
+import { StatusBanner } from "./ui/StatusBanner";
 import { useCountdownMinutes } from "@/lib/useCountdown";
 
 type Routine = "evening" | "morning";
@@ -94,9 +95,7 @@ export function KidTurnView({
       {loading ? (
         <LoadingSkeleton />
       ) : error ? (
-        <Card className="border-rose-500/30 bg-rose-950/30">
-          <p className="text-center text-rose-200">{error}</p>
-        </Card>
+        <StatusBanner tone="error">{error}</StatusBanner>
       ) : state ? (
         <div className="animate-fade-up flex flex-col gap-4">
           <Card className="relative overflow-hidden">
@@ -169,17 +168,37 @@ export function KidTurnView({
           {!state.complete && state.isMyTurn ? (
             <div className="flex flex-col gap-3">
               {!state.started ? (
-                <PrimaryButton disabled={acting} onClick={() => act("start")}>
-                  Start
-                </PrimaryButton>
+                <>
+                  <PrimaryButton
+                    disabled={acting}
+                    loading={acting}
+                    onClick={() => act("start")}
+                  >
+                    Start my turn
+                  </PrimaryButton>
+                  <PrimaryButton
+                    variant="secondary"
+                    disabled={acting}
+                    onClick={() => act("done")}
+                  >
+                    Skip ahead (Done)
+                  </PrimaryButton>
+                </>
               ) : (
-                <p className="text-center text-sm text-emerald-300/90">
-                  In progress — tap Done when finished
-                </p>
+                <>
+                  <StatusBanner tone="success" icon="●">
+                    In progress — tap Done when you finish.
+                  </StatusBanner>
+                  <PrimaryButton
+                    variant="danger"
+                    disabled={acting}
+                    loading={acting}
+                    onClick={() => act("done")}
+                  >
+                    Done — notify next
+                  </PrimaryButton>
+                </>
               )}
-              <PrimaryButton disabled={acting} onClick={() => act("done")}>
-                Done
-              </PrimaryButton>
             </div>
           ) : null}
 

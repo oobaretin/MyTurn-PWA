@@ -49,6 +49,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, #818cf8 80%, transparent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .animate-fade-up {
   animation: fade-up 0.45s ease-out both;
 }

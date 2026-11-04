@@ -63,8 +63,14 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
 
   if (status === "done") {
     return (
-      <p className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 py-2.5 text-center text-sm text-emerald-200">
-        <span aria-hidden>✓</span> Notifications on
+      <p className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-950/40 py-3 text-center text-sm font-medium text-emerald-100">
+        <span
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/30 text-emerald-200"
+          aria-hidden
+        >
+          ✓
+        </span>
+        Turn alerts enabled
       </p>
     );
   }
@@ -81,11 +87,14 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
     <button
       type="button"
       onClick={subscribe}
-      className="w-full rounded-2xl border border-indigo-400/30 bg-indigo-500/10 py-3 text-sm font-semibold text-indigo-100 transition active:bg-indigo-500/20"
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 py-3.5 text-sm font-semibold text-indigo-50 shadow-sm transition active:scale-[0.99]"
     >
+      <span aria-hidden className="text-base">
+        🔔
+      </span>
       {status === "denied"
-        ? "Enable notifications in Settings"
-        : "Turn on turn reminders"}
+        ? "Notifications blocked — open Settings"
+        : "Enable turn alerts on this phone"}
     </button>
   );
 }

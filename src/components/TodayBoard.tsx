@@ -5,6 +5,7 @@ import { Card, MobileShell } from "./MobileShell";
 import { IconShower, IconSunrise } from "./ui/Icons";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
+import { ParentNav } from "./ui/ParentNav";
 
 type Snapshot = {
   label: string;
@@ -20,11 +21,15 @@ export function TodayBoard({ householdId }: { householdId: string }) {
     evening: Snapshot;
     morning: Snapshot;
   } | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   useEffect(() => {
     async function load() {
       const res = await fetch(`/api/households/${householdId}/today`);
-      if (res.ok) setData(await res.json());
+      if (res.ok) {
+        setData(await res.json());
+        setLastRefresh(new Date());
+      }
     }
     load();
     const t = setInterval(load, 10_000);
@@ -100,16 +105,16 @@ export function TodayBoard({ householdId }: { householdId: string }) {
       title={data.household.name}
       subtitle={`Today · ${data.household.date}`}
     >
+      {lastRefresh ? (
+        <p className="text-center text-xs text-slate-500">
+          Updated {lastRefresh.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+        </p>
+      ) : null}
       <div className="animate-fade-up flex flex-col gap-4">
         <RoutineCard snap={data.evening} icon={IconShower} />
         <RoutineCard snap={data.morning} icon={IconSunrise} />
       </div>
-      <a
-        href={`/h/${householdId}/setup`}
-        className="mt-2 block text-center text-sm font-medium text-indigo-300 underline-offset-4 hover:underline"
-      >
-        Parent setup →
-      </a>
+      <ParentNav householdId={householdId} active="today" />
     </MobileShell>
   );
 }

@@ -8,9 +8,11 @@ import {
   MobileShell,
   PrimaryButton,
   SectionTitle,
+  StickyActionBar,
   TextInput,
 } from "./MobileShell";
 import { IconShower, IconSunrise } from "./ui/Icons";
+import { StatusBanner } from "./ui/StatusBanner";
 
 const COLORS = ["#6366f1", "#ec4899", "#14b8a6", "#f59e0b", "#8b5cf6"];
 
@@ -24,6 +26,7 @@ export function HomeCreateForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [joinId, setJoinId] = useState("");
+  const [showJoin, setShowJoin] = useState(false);
   const [serverHealth, setServerHealth] = useState<{
     database: string;
     push: string;
@@ -115,22 +118,19 @@ export function HomeCreateForm() {
       }
     >
       {serverHealth?.database === "missing" ? (
-        <Card className="border-amber-500/30 bg-amber-950/25">
-          <p className="text-sm font-medium text-amber-100">Setup required</p>
-          <p className="mt-1 text-sm leading-relaxed text-amber-200/90">
-            Add <code className="text-amber-50">.env.local</code> with{" "}
-            <code className="text-amber-50">DATABASE_URL</code>, run{" "}
-            <code className="text-amber-50">db/migrate.sql</code>, restart dev
-            server.
+        <StatusBanner tone="warning">
+          <p className="font-medium">Setup required</p>
+          <p className="mt-1 text-amber-200/90">
+            Add DATABASE_URL locally, run migrate, restart dev.
           </p>
-        </Card>
+        </StatusBanner>
+      ) : serverHealth?.database === "configured" ? (
+        <StatusBanner tone="success" icon="✓">
+          Server ready — create your household below.
+        </StatusBanner>
       ) : null}
 
-      {error ? (
-        <Card className="border-rose-500/30 bg-rose-950/20">
-          <p className="text-sm text-rose-200">{error}</p>
-        </Card>
-      ) : null}
+      {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       <Card>
         <SectionTitle>Create your household</SectionTitle>
@@ -149,17 +149,24 @@ export function HomeCreateForm() {
         <div className="mt-4">
           <FieldLabel>Kids</FieldLabel>
           {kidNames.map((kn, i) => (
-            <TextInput
-              key={i}
-              value={kn}
-              onChange={(e) => {
-                const next = [...kidNames];
-                next[i] = e.target.value;
-                setKidNames(next);
-              }}
-              placeholder={`Kid ${i + 1} name`}
-              className="mt-2"
-            />
+            <div key={i} className="mt-2 flex items-center gap-2">
+              <span
+                className="h-3 w-3 shrink-0 rounded-full ring-2 ring-white/15"
+                style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                aria-hidden
+              />
+              <TextInput
+                value={kn}
+                onChange={(e) => {
+                  const next = [...kidNames];
+                  next[i] = e.target.value;
+                  setKidNames(next);
+                }}
+                placeholder={`Kid ${i + 1} name`}
+                className="flex-1"
+                aria-label={`Kid ${i + 1} name`}
+              />
+            </div>
           ))}
           {kidNames.length < 8 ? (
             <button
@@ -191,23 +198,37 @@ export function HomeCreateForm() {
         </div>
       </Card>
 
-      <PrimaryButton disabled={loading} onClick={create}>
-        {loading ? "Creating…" : "Get started"}
-      </PrimaryButton>
+      <StickyActionBar>
+        <PrimaryButton disabled={loading} loading={loading} onClick={create}>
+          {loading ? "Creating…" : "Get started"}
+        </PrimaryButton>
+      </StickyActionBar>
 
-      <Card>
-        <SectionTitle>Already set up?</SectionTitle>
-        <FieldLabel>Household ID</FieldLabel>
-        <TextInput
-          value={joinId}
-          onChange={(e) => setJoinId(e.target.value)}
-          placeholder="Paste ID from parent setup URL"
-        />
-        <div className="mt-3">
-          <PrimaryButton variant="secondary" onClick={goJoin}>
-            Open parent setup
-          </PrimaryButton>
-        </div>
+      <Card className="!p-0 overflow-hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-200"
+          onClick={() => setShowJoin((v) => !v)}
+          aria-expanded={showJoin}
+        >
+          Already set up?
+          <span className="text-indigo-300">{showJoin ? "−" : "+"}</span>
+        </button>
+        {showJoin ? (
+          <div className="border-t border-white/10 px-5 pb-5 pt-4">
+            <FieldLabel>Household ID</FieldLabel>
+            <TextInput
+              value={joinId}
+              onChange={(e) => setJoinId(e.target.value)}
+              placeholder="From your setup URL"
+            />
+            <div className="mt-3">
+              <PrimaryButton variant="secondary" onClick={goJoin}>
+                Open parent setup
+              </PrimaryButton>
+            </div>
+          </div>
+        ) : null}
       </Card>
     </MobileShell>
   );

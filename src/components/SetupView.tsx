@@ -9,8 +9,11 @@ import {
   SectionTitle,
   TextInput,
 } from "./MobileShell";
+import { CopyTextButton } from "./ui/CopyTextButton";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
+import { ParentNav } from "./ui/ParentNav";
+import { StatusBanner } from "./ui/StatusBanner";
 
 type KidLink = { id: string; name: string; color: string; sharePath: string };
 
@@ -29,6 +32,11 @@ export function SetupView({ householdId }: { householdId: string }) {
   const [kids, setKids] = useState<KidLink[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/households/${householdId}/settings`);
@@ -79,12 +87,6 @@ export function SetupView({ householdId }: { householdId: string }) {
     setMessage(res.ok ? "Skipped to next kid" : "Skip failed");
   }
 
-  function copyLink(path: string) {
-    const url = `${window.location.origin}${path}`;
-    void navigator.clipboard.writeText(url);
-    setMessage("Link copied!");
-  }
-
   if (!settings) {
     return (
       <MobileShell title="Setup" subtitle="Loading household…">
@@ -114,10 +116,20 @@ export function SetupView({ householdId }: { householdId: string }) {
   return (
     <MobileShell title="Family setup" subtitle={settings.name}>
       {message ? (
-        <p className="animate-fade-up rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-center text-sm text-indigo-100">
-          {message}
-        </p>
+        <StatusBanner tone="info">{message}</StatusBanner>
       ) : null}
+
+      <Card>
+        <SectionTitle>Household ID</SectionTitle>
+        <p className="mb-2 font-mono text-xs text-slate-400 break-all">
+          {householdId}
+        </p>
+        <CopyTextButton
+          text={householdId}
+          label="Copy household ID"
+          className="text-left"
+        />
+      </Card>
 
       <Card>
         <SectionTitle>Schedule</SectionTitle>
@@ -193,13 +205,11 @@ export function SetupView({ householdId }: { householdId: string }) {
               <KidAvatar name={k.name} color={k.color} size="md" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-white">{k.name}</p>
-                <button
-                  type="button"
-                  className="mt-1 text-sm font-medium text-indigo-300"
-                  onClick={() => copyLink(k.sharePath)}
-                >
-                  Copy link →
-                </button>
+                <CopyTextButton
+                  text={`${origin}${k.sharePath}`}
+                  label="Copy kid link →"
+                  className="mt-1 block text-left"
+                />
               </div>
             </li>
           ))}
@@ -218,12 +228,7 @@ export function SetupView({ householdId }: { householdId: string }) {
         </div>
       </Card>
 
-      <a
-        href={`/h/${householdId}/today`}
-        className="block text-center text-sm font-medium text-indigo-300 underline-offset-4 hover:underline"
-      >
-        View family board →
-      </a>
+      <ParentNav householdId={householdId} active="setup" />
     </MobileShell>
   );
 }

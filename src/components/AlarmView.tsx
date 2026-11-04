@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MobileShell, PrimaryButton } from "./MobileShell";
+import { MobileShell, PrimaryButton, StickyActionBar } from "./MobileShell";
 import { IconShower, IconSunrise } from "./ui/Icons";
 
 type Routine = "evening" | "morning";
@@ -81,10 +81,12 @@ export function AlarmView({
         <PrimaryButton variant="secondary" onClick={startSound}>
           Play alarm sound
         </PrimaryButton>
-        <PrimaryButton disabled={acting} onClick={done}>
+      </div>
+      <StickyActionBar>
+        <PrimaryButton disabled={acting} loading={acting} onClick={done}>
           Done — I&apos;m going
         </PrimaryButton>
-      </div>
+      </StickyActionBar>
     </MobileShell>
   );
 }

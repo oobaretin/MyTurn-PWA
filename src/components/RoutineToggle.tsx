@@ -25,6 +25,7 @@ export function RoutineToggle({
             key={id}
             type="button"
             onClick={() => onChange(id)}
+            aria-pressed={active}
             className={`flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
               active
                 ? "bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md"

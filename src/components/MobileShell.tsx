@@ -59,11 +59,13 @@ export function PrimaryButton({
   children,
   onClick,
   disabled,
+  loading = false,
   variant = "primary",
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  loading?: boolean;
   variant?: "primary" | "secondary" | "danger" | "ghost";
 }) {
   const styles =
@@ -78,12 +80,30 @@ export function PrimaryButton({
   return (
     <button
       type="button"
-      disabled={disabled}
+      disabled={disabled || loading}
       onClick={onClick}
       className={`min-h-14 w-full rounded-2xl px-6 text-lg font-semibold transition disabled:opacity-40 disabled:active:scale-100 ${styles}`}
     >
-      {children}
+      {loading ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          <span
+            className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+            aria-hidden
+          />
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </button>
+  );
+}
+
+export function StickyActionBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-0 -mx-4 border-t border-white/10 bg-[#070b14]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+      {children}
+    </div>
   );
 }
 
