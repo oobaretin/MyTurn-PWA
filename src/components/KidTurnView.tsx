@@ -95,7 +95,20 @@ export function KidTurnView({
       {loading ? (
         <LoadingSkeleton />
       ) : error ? (
-        <StatusBanner tone="error">{error}</StatusBanner>
+        <StatusBanner tone="error">
+          {error.toLowerCase().includes("not found") ? (
+            <>
+              <p className="font-medium">This link isn&apos;t valid</p>
+              <p className="mt-1 text-rose-100/90">
+                Ask a parent to open Family setup, tap{" "}
+                <strong>Copy full link</strong>, and text the whole URL starting
+                with https:// (not a cut-off /k/… line).
+              </p>
+            </>
+          ) : (
+            error
+          )}
+        </StatusBanner>
       ) : state ? (
         <div className="animate-fade-up flex flex-col gap-4">
           <Card className="relative overflow-hidden">

@@ -10,12 +10,18 @@ import {
   TextInput,
 } from "./MobileShell";
 import { CopyTextButton } from "./ui/CopyTextButton";
-import { KidAvatar } from "./ui/KidAvatar";
+import { KidLinkRow } from "./ui/KidLinkRow";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { ParentNav } from "./ui/ParentNav";
 import { StatusBanner } from "./ui/StatusBanner";
 
-type KidLink = { id: string; name: string; color: string; sharePath: string };
+type KidLink = {
+  id: string;
+  name: string;
+  color: string;
+  sharePath: string;
+  shareUrl: string;
+};
 
 export function SetupView({ householdId }: { householdId: string }) {
   const [authed, setAuthed] = useState(false);
@@ -32,12 +38,6 @@ export function SetupView({ householdId }: { householdId: string }) {
   const [kids, setKids] = useState<KidLink[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [origin, setOrigin] = useState("");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
   const load = useCallback(async () => {
     const res = await fetch(`/api/households/${householdId}/settings`);
     const data = await res.json();
@@ -192,26 +192,25 @@ export function SetupView({ householdId }: { householdId: string }) {
 
       <Card>
         <SectionTitle>Kid links</SectionTitle>
-        <p className="mb-4 text-sm text-slate-400">
-          Text each link to your child. They should allow notifications and Add
-          to Home Screen.
+        <p className="mb-4 text-sm leading-relaxed text-slate-400">
+          Send the <strong className="text-slate-300">full https:// link</strong>{" "}
+          (not just /k/…). On iPhone, use <strong className="text-slate-300">Share…</strong>{" "}
+          into Messages. Kids open in Safari, enable alerts, Add to Home Screen.
         </p>
         <ul className="space-y-3">
           {kids.map((k) => (
-            <li
+            <KidLinkRow
               key={k.id}
-              className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/25 p-3"
-            >
-              <KidAvatar name={k.name} color={k.color} size="md" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-white">{k.name}</p>
-                <CopyTextButton
-                  text={`${origin}${k.sharePath}`}
-                  label="Copy kid link →"
-                  className="mt-1 block text-left"
-                />
-              </div>
-            </li>
+              name={k.name}
+              color={k.color}
+              sharePath={k.sharePath}
+              shareUrl={
+                k.shareUrl ||
+                (typeof window !== "undefined"
+                  ? `${window.location.origin}${k.sharePath}`
+                  : k.sharePath)
+              }
+            />
           ))}
         </ul>
       </Card>

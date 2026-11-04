@@ -9,7 +9,8 @@ export default async function AlarmPage({
   params: Promise<{ shareToken: string }>;
   searchParams: Promise<{ routine?: string }>;
 }) {
-  const { shareToken } = await params;
+  const { shareToken: rawToken } = await params;
+  const shareToken = decodeURIComponent(rawToken).trim();
   const sp = await searchParams;
   const routine = sp.routine === "morning" ? "morning" : "evening";
   return <AlarmView shareToken={shareToken} routine={routine} />;

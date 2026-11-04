@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { hasAdminSession, hashPin, verifyPin } from "@/lib/auth";
+import { kidShareUrl, requestOrigin } from "@/lib/request-origin";
 
 const patchSchema = z.object({
   pin: z.string().optional(),
@@ -22,7 +23,7 @@ const patchSchema = z.object({
 });
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
@@ -45,6 +46,7 @@ export async function GET(
     const authed = await hasAdminSession(id);
 
     return NextResponse.json({
+      siteOrigin: requestOrigin(request),
       authed,
       household: {
         id: household.id,
@@ -61,6 +63,7 @@ export async function GET(
         name: k.name,
         color: k.color,
         sharePath: `/k/${k.shareToken}`,
+        shareUrl: kidShareUrl(request, k.shareToken),
       })),
     });
   } catch (e) {
