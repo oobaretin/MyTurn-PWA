@@ -21,9 +21,11 @@ Mobile-first PWA for fair evening shower and morning school-ready turns. Share a
 
    Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (e.g. `mailto:you@example.com`).
 
-5. Set `CRON_SECRET` to a long random string. Vercel Cron (see [`vercel.json`](vercel.json)) hits `/api/cron/tick` each minute; with `CRON_SECRET` in env, Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically.
+5. Set `CRON_SECRET` to a long random string.
 
-6. Deploy.
+6. **Cron / turn nudges:** On **Vercel Hobby**, do not use a per-minute cron in `vercel.json` (deploy will fail). Either upgrade to **Pro** and add a minute cron for `/api/cron/tick`, or use an external scheduler (e.g. cron-job.org) to `GET` `https://your-app.vercel.app/api/cron/tick` every minute with header `Authorization: Bearer <CRON_SECRET>`.
+
+7. Deploy.
 
 ## Local development
 
