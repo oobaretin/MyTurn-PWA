@@ -145,6 +145,8 @@ export function TextInput({
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-3 text-sm font-semibold text-slate-200">{children}</h2>
+    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+      {children}
+    </h2>
   );
 }

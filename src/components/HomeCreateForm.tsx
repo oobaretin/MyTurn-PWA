@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   FieldLabel,
@@ -27,21 +27,12 @@ export function HomeCreateForm() {
   const [loading, setLoading] = useState(false);
   const [joinId, setJoinId] = useState("");
   const [showJoin, setShowJoin] = useState(false);
-  const [serverHealth, setServerHealth] = useState<{
-    database: string;
-    push: string;
-  } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then((h: { database: string; push: string }) => setServerHealth(h))
-      .catch(() => setServerHealth(null));
-  }, []);
 
   function friendlyError(message: string): string {
     if (message.includes("DATABASE_URL")) {
-      return "Database not configured. Copy .env.example to .env.local, set DATABASE_URL (Neon/Vercel Postgres), run db/migrate.sql, then restart npm run dev.";
+      return process.env.NODE_ENV === "development"
+        ? "Database not configured for local dev."
+        : "Something went wrong. Please try again.";
     }
     return message;
   }
@@ -91,19 +82,19 @@ export function HomeCreateForm() {
   return (
     <MobileShell
       title="Fair turns, fewer fights"
-      subtitle="Evening showers and morning routines — with reminders on each kid's phone."
+      subtitle="Evening showers and morning routines, with gentle reminders."
       hero={
         <div className="mb-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col items-center rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center">
             <IconShower className="mb-1 h-6 w-6 text-indigo-300" />
             <span className="text-[10px] font-medium leading-tight text-slate-400">
-              Rotate nightly
+              Evening
             </span>
           </div>
           <div className="flex flex-col items-center rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center">
             <IconSunrise className="mb-1 h-6 w-6 text-amber-200" />
             <span className="text-[10px] font-medium leading-tight text-slate-400">
-              School mornings
+              Morning
             </span>
           </div>
           <div className="flex flex-col items-center rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center">
@@ -111,25 +102,12 @@ export function HomeCreateForm() {
               🔔
             </span>
             <span className="text-[10px] font-medium leading-tight text-slate-400">
-              Push alerts
+              Alerts
             </span>
           </div>
         </div>
       }
     >
-      {serverHealth?.database === "missing" ? (
-        <StatusBanner tone="warning">
-          <p className="font-medium">Setup required</p>
-          <p className="mt-1 text-amber-200/90">
-            Add DATABASE_URL locally, run migrate, restart dev.
-          </p>
-        </StatusBanner>
-      ) : serverHealth?.database === "configured" ? (
-        <StatusBanner tone="success" icon="✓">
-          Server ready — create your household below.
-        </StatusBanner>
-      ) : null}
-
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       <Card>
@@ -162,7 +140,7 @@ export function HomeCreateForm() {
                   next[i] = e.target.value;
                   setKidNames(next);
                 }}
-                placeholder={`Kid ${i + 1} name`}
+                placeholder={`Kid ${i + 1}`}
                 className="flex-1"
                 aria-label={`Kid ${i + 1} name`}
               />
@@ -174,13 +152,13 @@ export function HomeCreateForm() {
               className="mt-3 text-sm font-medium text-indigo-300"
               onClick={() => setKidNames([...kidNames, ""])}
             >
-              + Add another kid
+              + Add kid
             </button>
           ) : null}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
-            <FieldLabel>Evening shower</FieldLabel>
+            <FieldLabel>Evening</FieldLabel>
             <TextInput
               type="time"
               value={eveningStartTime}
@@ -188,7 +166,7 @@ export function HomeCreateForm() {
             />
           </div>
           <div>
-            <FieldLabel>Morning ready</FieldLabel>
+            <FieldLabel>Morning</FieldLabel>
             <TextInput
               type="time"
               value={morningStartTime}
@@ -211,7 +189,7 @@ export function HomeCreateForm() {
           onClick={() => setShowJoin((v) => !v)}
           aria-expanded={showJoin}
         >
-          Already set up?
+          Returning family
           <span className="text-indigo-300">{showJoin ? "−" : "+"}</span>
         </button>
         {showJoin ? (
@@ -220,11 +198,11 @@ export function HomeCreateForm() {
             <TextInput
               value={joinId}
               onChange={(e) => setJoinId(e.target.value)}
-              placeholder="From your setup URL"
+              placeholder="Paste ID"
             />
             <div className="mt-3">
               <PrimaryButton variant="secondary" onClick={goJoin}>
-                Open parent setup
+                Continue
               </PrimaryButton>
             </div>
           </div>

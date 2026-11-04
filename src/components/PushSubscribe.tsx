@@ -101,7 +101,7 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
       </span>
       {status === "denied"
         ? "Notifications blocked — open Settings"
-        : "Turn on turn alerts (optional)"}
+        : "Turn on alerts"}
     </button>
   );
 }

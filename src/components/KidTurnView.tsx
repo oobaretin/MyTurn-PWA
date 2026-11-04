@@ -98,10 +98,9 @@ export function KidTurnView({
         <StatusBanner tone="error">
           {error.toLowerCase().includes("not found") ? (
             <>
-              <p className="font-medium">This link isn&apos;t valid</p>
+              <p className="font-medium">Link expired or invalid</p>
               <p className="mt-1 text-rose-100/90">
-                Ask a parent to text you a fresh link from Family setup →{" "}
-                <strong>Copy link for Messages</strong>.
+                Ask a parent to send a new link from Settings.
               </p>
             </>
           ) : (

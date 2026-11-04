@@ -38,7 +38,9 @@ export function SetupView({ householdId }: { householdId: string }) {
   const [kids, setKids] = useState<KidLink[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showHouseholdId, setShowHouseholdId] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const load = useCallback(async () => {
     setLoadError(null);
     const res = await fetch(`/api/households/${householdId}/settings`);
@@ -46,8 +48,8 @@ export function SetupView({ householdId }: { householdId: string }) {
     if (!res.ok) {
       setLoadError(
         res.status === 404
-          ? "Household not found. Use “Already set up?” on the home page with the correct ID, or create a new family on this site."
-          : (data.error ?? "Could not load household"),
+          ? "Household not found."
+          : (data.error ?? "Could not load"),
       );
       setSettings(null);
       setKids([]);
@@ -100,7 +102,7 @@ export function SetupView({ householdId }: { householdId: string }) {
 
   if (!settings) {
     return (
-      <MobileShell title="Setup" subtitle="Loading household…">
+      <MobileShell title="Settings" subtitle="Loading…">
         {loadError ? (
           <StatusBanner tone="error">{loadError}</StatusBanner>
         ) : (
@@ -112,7 +114,7 @@ export function SetupView({ householdId }: { householdId: string }) {
 
   if (!authed && settings.hasPin) {
     return (
-      <MobileShell title="Parent area" subtitle={settings.name}>
+      <MobileShell title="Settings" subtitle={settings.name}>
         <Card>
           <FieldLabel>PIN</FieldLabel>
           <TextInput
@@ -120,7 +122,7 @@ export function SetupView({ householdId }: { householdId: string }) {
             inputMode="numeric"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter parent PIN"
+            placeholder="Parent PIN"
           />
         </Card>
         <PrimaryButton onClick={login}>Unlock</PrimaryButton>
@@ -129,34 +131,35 @@ export function SetupView({ householdId }: { householdId: string }) {
   }
 
   return (
-    <MobileShell title="Family setup" subtitle={settings.name}>
+    <MobileShell title="Settings" subtitle={settings.name}>
       {message ? (
         <StatusBanner tone="info">{message}</StatusBanner>
       ) : null}
 
       <Card>
-        <SectionTitle>Household ID (parents only)</SectionTitle>
-        <p className="mb-2 text-xs leading-relaxed text-slate-500">
-          For you or your spouse to rejoin setup —{" "}
-          <strong className="text-slate-400">not</strong> the link you text to
-          kids (kids need <strong className="text-slate-400">/k/</strong> links
-          below).
-        </p>
-        <p className="mb-2 font-mono text-xs text-slate-400 break-all">
-          {householdId}
-        </p>
-        <CopyTextButton
-          text={householdId}
-          label="Copy household ID"
-          className="text-left"
-        />
+        <SectionTitle>Kids</SectionTitle>
+        <ul className="space-y-2">
+          {kids.map((k) => (
+            <KidLinkRow
+              key={k.id}
+              name={k.name}
+              color={k.color}
+              shareUrl={
+                k.shareUrl ||
+                (typeof window !== "undefined"
+                  ? `${window.location.origin}${k.sharePath}`
+                  : k.sharePath)
+              }
+            />
+          ))}
+        </ul>
       </Card>
 
       <Card>
         <SectionTitle>Schedule</SectionTitle>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <FieldLabel>Evening start</FieldLabel>
+            <FieldLabel>Evening</FieldLabel>
             <TextInput
               type="time"
               value={settings.eveningStartTime}
@@ -166,7 +169,7 @@ export function SetupView({ householdId }: { householdId: string }) {
             />
           </div>
           <div>
-            <FieldLabel>Morning start</FieldLabel>
+            <FieldLabel>Morning</FieldLabel>
             <TextInput
               type="time"
               value={settings.morningStartTime}
@@ -203,37 +206,13 @@ export function SetupView({ householdId }: { householdId: string }) {
               })
             }
           />
-          School days only (Mon–Fri)
+          School days only
         </label>
       </Card>
 
       <PrimaryButton disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Save schedule"}
+        {saving ? "Saving…" : "Save changes"}
       </PrimaryButton>
-
-      <Card>
-        <SectionTitle>Text each kid their link</SectionTitle>
-        <p className="mb-4 text-sm text-slate-400">
-          Tap <strong className="text-slate-300">Copy link</strong> or{" "}
-          <strong className="text-slate-300">Share…</strong> — not the parent
-          setup URL from your browser bar.
-        </p>
-        <ul className="space-y-3">
-          {kids.map((k) => (
-            <KidLinkRow
-              key={k.id}
-              name={k.name}
-              color={k.color}
-              shareUrl={
-                k.shareUrl ||
-                (typeof window !== "undefined"
-                  ? `${window.location.origin}${k.sharePath}`
-                  : k.sharePath)
-              }
-            />
-          ))}
-        </ul>
-      </Card>
 
       <Card>
         <SectionTitle>Quick actions</SectionTitle>
@@ -245,6 +224,30 @@ export function SetupView({ householdId }: { householdId: string }) {
             Skip evening turn
           </PrimaryButton>
         </div>
+      </Card>
+
+      <Card className="!p-0 overflow-hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-300"
+          onClick={() => setShowHouseholdId((v) => !v)}
+          aria-expanded={showHouseholdId}
+        >
+          Household ID
+          <span className="text-indigo-300">{showHouseholdId ? "−" : "+"}</span>
+        </button>
+        {showHouseholdId ? (
+          <div className="border-t border-white/10 px-5 pb-5 pt-3">
+            <p className="mb-3 break-all font-mono text-xs text-slate-500">
+              {householdId}
+            </p>
+            <CopyTextButton
+              text={householdId}
+              label="Copy ID"
+              variant="pill"
+            />
+          </div>
+        ) : null}
       </Card>
 
       <ParentNav householdId={householdId} active="setup" />

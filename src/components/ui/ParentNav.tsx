@@ -8,7 +8,7 @@ export function ParentNav({
   active: "setup" | "today";
 }) {
   const items = [
-    { id: "setup" as const, href: `/h/${householdId}/setup`, label: "Setup" },
+    { id: "setup" as const, href: `/h/${householdId}/setup`, label: "Settings" },
     { id: "today" as const, href: `/h/${householdId}/today`, label: "Today" },
     { id: "home" as const, href: "/", label: "Home" },
   ];
