@@ -21,11 +21,7 @@ export function requestOrigin(request: Request): string {
 }
 
 export function kidShareUrl(request: Request, shareToken: string): string {
-  const onVercelProd =
-    process.env.VERCEL_ENV === "production" ||
-    process.env.NODE_ENV === "production";
-  const origin =
-    (onVercelProd && canonicalProductionOrigin()) || requestOrigin(request);
+  const origin = canonicalProductionOrigin() || requestOrigin(request);
   if (!origin) return `/k/${shareToken}`;
   return `${origin}/k/${shareToken}`;
 }

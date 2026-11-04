@@ -37,11 +37,22 @@ export function SetupView({ householdId }: { householdId: string }) {
   } | null>(null);
   const [kids, setKids] = useState<KidLink[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const load = useCallback(async () => {
+    setLoadError(null);
     const res = await fetch(`/api/households/${householdId}/settings`);
     const data = await res.json();
-    if (!res.ok) return;
+    if (!res.ok) {
+      setLoadError(
+        res.status === 404
+          ? "Household not found. Use “Already set up?” on the home page with the correct ID, or create a new family on this site."
+          : (data.error ?? "Could not load household"),
+      );
+      setSettings(null);
+      setKids([]);
+      return;
+    }
     setAuthed(data.authed);
     setSettings(data.household);
     setKids(data.kids);
@@ -90,7 +101,11 @@ export function SetupView({ householdId }: { householdId: string }) {
   if (!settings) {
     return (
       <MobileShell title="Setup" subtitle="Loading household…">
-        <LoadingSkeleton />
+        {loadError ? (
+          <StatusBanner tone="error">{loadError}</StatusBanner>
+        ) : (
+          <LoadingSkeleton />
+        )}
       </MobileShell>
     );
   }
@@ -120,7 +135,13 @@ export function SetupView({ householdId }: { householdId: string }) {
       ) : null}
 
       <Card>
-        <SectionTitle>Household ID</SectionTitle>
+        <SectionTitle>Household ID (parents only)</SectionTitle>
+        <p className="mb-2 text-xs leading-relaxed text-slate-500">
+          For you or your spouse to rejoin setup —{" "}
+          <strong className="text-slate-400">not</strong> the link you text to
+          kids (kids need <strong className="text-slate-400">/k/</strong> links
+          below).
+        </p>
         <p className="mb-2 font-mono text-xs text-slate-400 break-all">
           {householdId}
         </p>

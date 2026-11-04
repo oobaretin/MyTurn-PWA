@@ -89,6 +89,14 @@ export function KidLinkRow({
             }
             className="mt-2"
           />
+          {phoneReady && verify === "ok" ? (
+            <a
+              href={shareUrl}
+              className="mt-2 inline-block text-sm font-semibold text-slate-300 underline-offset-2 hover:underline"
+            >
+              Open kid page (test before texting)
+            </a>
+          ) : null}
           <p className="mt-2 break-all font-mono text-[11px] leading-snug text-slate-500">
             {shareUrl}
           </p>

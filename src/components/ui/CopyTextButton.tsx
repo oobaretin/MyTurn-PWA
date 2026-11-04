@@ -33,6 +33,22 @@ export function CopyTextButton({
       await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
+      return;
+    } catch {
+      /* fall through to legacy copy */
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard blocked */
     }
