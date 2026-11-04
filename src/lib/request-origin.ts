@@ -26,16 +26,3 @@ export function kidShareUrl(request: Request, shareToken: string): string {
   return `${origin}/k/${shareToken}`;
 }
 
-export function shareUrlHost(shareUrl: string): string {
-  try {
-    return new URL(shareUrl).hostname;
-  } catch {
-    return "";
-  }
-}
-
-export function isPhoneReadyShareUrl(shareUrl: string): boolean {
-  if (!shareUrl.startsWith("https://")) return false;
-  const host = shareUrlHost(shareUrl);
-  return host !== "localhost" && host !== "127.0.0.1";
-}
