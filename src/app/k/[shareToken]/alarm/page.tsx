@@ -1,4 +1,5 @@
 import { AlarmView } from "@/components/AlarmView";
+import { KidSwGuard } from "@/components/KidSwGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -13,5 +14,9 @@ export default async function AlarmPage({
   const shareToken = decodeURIComponent(rawToken).trim();
   const sp = await searchParams;
   const routine = sp.routine === "morning" ? "morning" : "evening";
-  return <AlarmView shareToken={shareToken} routine={routine} />;
+  return (
+    <KidSwGuard>
+      <AlarmView shareToken={shareToken} routine={routine} />
+    </KidSwGuard>
+  );
 }

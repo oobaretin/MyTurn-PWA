@@ -1,3 +1,4 @@
+import { KidSwGuard } from "@/components/KidSwGuard";
 import { KidTurnView } from "@/components/KidTurnView";
 
 export const dynamic = "force-dynamic";
@@ -13,5 +14,9 @@ export default async function KidPage({
   const shareToken = decodeURIComponent(rawToken).trim();
   const sp = await searchParams;
   const routine = sp.routine === "morning" ? "morning" : "evening";
-  return <KidTurnView shareToken={shareToken} initialRoutine={routine} />;
+  return (
+    <KidSwGuard>
+      <KidTurnView shareToken={shareToken} initialRoutine={routine} />
+    </KidSwGuard>
+  );
 }
