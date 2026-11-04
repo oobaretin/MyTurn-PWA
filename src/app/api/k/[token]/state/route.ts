@@ -9,7 +9,6 @@ import {
 import { minutesUntil, slotStartUtc, todayInTimezone } from "@/lib/dates";
 import { currentTurnKidId } from "@/lib/rotation";
 import { normalizeShareToken } from "@/lib/share-token";
-import { agentLog } from "@/lib/agent-debug-log";
 
 export async function GET(
   request: Request,
@@ -28,25 +27,8 @@ export async function GET(
       .where(eq(schema.kids.shareToken, token))
       .limit(1);
     if (!kid) {
-      // #region agent log
-      agentLog(
-        "api/k/state:GET",
-        "kid token not in database",
-        { tokenLen: token.length, routine },
-        "H1",
-      );
-      // #endregion
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-
-    // #region agent log
-    agentLog(
-      "api/k/state:GET",
-      "kid state loaded",
-      { tokenLen: token.length, routine, kidId: kid.id },
-      "H1",
-    );
-    // #endregion
 
     const [household] = await db
       .select()

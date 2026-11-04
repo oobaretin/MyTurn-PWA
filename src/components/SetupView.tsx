@@ -212,11 +212,11 @@ export function SetupView({ householdId }: { householdId: string }) {
       </PrimaryButton>
 
       <Card>
-        <SectionTitle>Kid links</SectionTitle>
-        <p className="mb-4 text-sm leading-relaxed text-slate-400">
-          Send the <strong className="text-slate-300">full https:// link</strong>{" "}
-          (not just /k/…). On iPhone, use <strong className="text-slate-300">Share…</strong>{" "}
-          into Messages. Kids open in Safari, enable alerts, Add to Home Screen.
+        <SectionTitle>Text each kid their link</SectionTitle>
+        <p className="mb-4 text-sm text-slate-400">
+          Tap <strong className="text-slate-300">Copy link</strong> or{" "}
+          <strong className="text-slate-300">Share…</strong> — not the parent
+          setup URL from your browser bar.
         </p>
         <ul className="space-y-3">
           {kids.map((k) => (
@@ -224,7 +224,6 @@ export function SetupView({ householdId }: { householdId: string }) {
               key={k.id}
               name={k.name}
               color={k.color}
-              sharePath={k.sharePath}
               shareUrl={
                 k.shareUrl ||
                 (typeof window !== "undefined"

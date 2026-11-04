@@ -3,12 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { hasAdminSession, hashPin, verifyPin } from "@/lib/auth";
-import { agentLog } from "@/lib/agent-debug-log";
-import {
-  kidShareUrl,
-  requestOrigin,
-  shareUrlHost,
-} from "@/lib/request-origin";
+import { kidShareUrl, requestOrigin } from "@/lib/request-origin";
 
 const patchSchema = z.object({
   pin: z.string().optional(),
@@ -58,22 +53,6 @@ export async function GET(
       sharePath: `/k/${k.shareToken}`,
       shareUrl: kidShareUrl(request, k.shareToken),
     }));
-
-    // #region agent log
-    agentLog(
-      "api/households/settings:GET",
-      "kid share urls built",
-      {
-        siteOrigin,
-        vercelEnv: process.env.VERCEL_ENV ?? "none",
-        kidCount: kidsPayload.length,
-        sampleShareHost: kidsPayload[0]
-          ? shareUrlHost(kidsPayload[0].shareUrl)
-          : "",
-      },
-      "H2",
-    );
-    // #endregion
 
     return NextResponse.json({
       siteOrigin,

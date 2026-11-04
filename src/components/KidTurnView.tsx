@@ -7,7 +7,6 @@ import { RoutineToggle } from "./RoutineToggle";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { StatusBanner } from "./ui/StatusBanner";
-import { agentLog } from "@/lib/agent-debug-log";
 import { useCountdownMinutes } from "@/lib/useCountdown";
 
 type Routine = "evening" | "morning";
@@ -49,20 +48,6 @@ export function KidTurnView({
         { cache: "no-store" },
       );
       const data = await res.json();
-      // #region agent log
-      agentLog(
-        "KidTurnView:load",
-        "kid state fetch",
-        {
-          httpStatus: res.status,
-          ok: res.ok,
-          tokenLen: shareToken.length,
-          routine,
-          error: !res.ok ? String(data.error ?? "") : "",
-        },
-        "H4",
-      );
-      // #endregion
       if (!res.ok) throw new Error(data.error ?? "Failed to load");
       setState(data as StateResponse);
       setError(null);
@@ -79,32 +64,6 @@ export function KidTurnView({
     const t = setInterval(load, 10_000);
     return () => clearInterval(t);
   }, [load]);
-
-  useEffect(() => {
-    const logConnectivity = (event: string) => {
-      // #region agent log
-      agentLog(
-        "KidTurnView:connectivity",
-        event,
-        {
-          onLine: navigator.onLine,
-          visibility: document.visibilityState,
-          hasSwController: Boolean(navigator.serviceWorker?.controller),
-        },
-        "H-SW1",
-      );
-      // #endregion
-    };
-    logConnectivity("mount");
-    const onOffline = () => logConnectivity("offline");
-    const onOnline = () => logConnectivity("online");
-    window.addEventListener("offline", onOffline);
-    window.addEventListener("online", onOnline);
-    return () => {
-      window.removeEventListener("offline", onOffline);
-      window.removeEventListener("online", onOnline);
-    };
-  }, []);
 
   async function act(action: "start" | "done") {
     setActing(true);
@@ -141,9 +100,8 @@ export function KidTurnView({
             <>
               <p className="font-medium">This link isn&apos;t valid</p>
               <p className="mt-1 text-rose-100/90">
-                Ask a parent to open Family setup, tap{" "}
-                <strong>Copy full link</strong>, and text the whole URL starting
-                with https:// (not a cut-off /k/… line).
+                Ask a parent to text you a fresh link from Family setup →{" "}
+                <strong>Copy link for Messages</strong>.
               </p>
             </>
           ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -11,6 +11,13 @@ function urlBase64ToUint8Array(base64String: string) {
     output[i] = raw.charCodeAt(i);
   }
   return output;
+}
+
+async function registerForPush() {
+  if (!("serviceWorker" in navigator)) return null;
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  if (existing) return existing;
+  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
 export function PushSubscribe({ shareToken }: { shareToken: string }) {
@@ -37,14 +44,20 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
       return;
     }
 
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await registerForPush();
+    if (!reg) {
+      setStatus("unsupported");
+      return;
+    }
+    await navigator.serviceWorker.ready;
+
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
 
     const json = sub.toJSON();
-    await fetch(`/api/k/${shareToken}/push`, {
+    await fetch(`/api/k/${encodeURIComponent(shareToken)}/push`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -54,12 +67,6 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
     });
     setStatus("done");
   }, [shareToken]);
-
-  useEffect(() => {
-    if (Notification.permission === "granted") {
-      void subscribe().catch(() => setStatus("ready"));
-    }
-  }, [subscribe]);
 
   if (status === "done") {
     return (
@@ -78,7 +85,7 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
   if (status === "unsupported") {
     return (
       <p className="rounded-2xl border border-amber-500/20 bg-amber-950/20 px-3 py-2 text-sm text-amber-100/90">
-        Use Safari/Chrome and Add to Home Screen on iPhone for alerts.
+        Use Safari on iPhone for turn alerts.
       </p>
     );
   }
@@ -94,7 +101,7 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
       </span>
       {status === "denied"
         ? "Notifications blocked — open Settings"
-        : "Enable turn alerts on this phone"}
+        : "Turn on turn alerts (optional)"}
     </button>
   );
 }
