@@ -29,10 +29,13 @@ Mobile-first PWA for fair evening shower and morning school-ready turns. Share a
 
 ```bash
 cp .env.example .env.local
-# fill DATABASE_URL and optional VAPID keys
+# Paste a Postgres URL into DATABASE_URL (Neon free tier works well)
 npm install
+npm run db:migrate
 npm run dev
 ```
+
+**Neon (free):** create a project at [neon.tech](https://neon.tech) → **Connect** → copy the connection string (use * pooled* or *direct*; include `?sslmode=require` if Neon omits it). Paste into `.env.local` as `DATABASE_URL`, then run `npm run db:migrate`.
 
 Open [http://localhost:3000](http://localhost:3000), create a household, and copy kid links from parent setup.
 

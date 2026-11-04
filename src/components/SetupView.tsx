@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, MobileShell, PrimaryButton } from "./MobileShell";
+import {
+  Card,
+  FieldLabel,
+  MobileShell,
+  PrimaryButton,
+  SectionTitle,
+  TextInput,
+} from "./MobileShell";
+import { KidAvatar } from "./ui/KidAvatar";
+import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 
 type KidLink = { id: string; name: string; color: string; sharePath: string };
 
@@ -79,22 +88,24 @@ export function SetupView({ householdId }: { householdId: string }) {
   if (!settings) {
     return (
       <MobileShell title="Setup" subtitle="Loading household…">
-        <p className="text-slate-400">Loading…</p>
+        <LoadingSkeleton />
       </MobileShell>
     );
   }
 
   if (!authed && settings.hasPin) {
     return (
-      <MobileShell title="Parent PIN" subtitle={settings.name}>
-        <input
-          type="password"
-          inputMode="numeric"
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          className="min-h-14 w-full rounded-2xl border border-white/20 bg-black/30 px-4 text-lg text-white"
-          placeholder="PIN"
-        />
+      <MobileShell title="Parent area" subtitle={settings.name}>
+        <Card>
+          <FieldLabel>PIN</FieldLabel>
+          <TextInput
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            placeholder="Enter parent PIN"
+          />
+        </Card>
         <PrimaryButton onClick={login}>Unlock</PrimaryButton>
       </MobileShell>
     );
@@ -102,48 +113,55 @@ export function SetupView({ householdId }: { householdId: string }) {
 
   return (
     <MobileShell title="Family setup" subtitle={settings.name}>
-      {message ? <p className="text-sm text-indigo-200">{message}</p> : null}
+      {message ? (
+        <p className="animate-fade-up rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-center text-sm text-indigo-100">
+          {message}
+        </p>
+      ) : null}
 
       <Card>
-        <label className="block text-sm text-slate-400">Evening shower starts</label>
-        <input
-          type="time"
-          value={settings.eveningStartTime}
-          onChange={(e) =>
-            setSettings({ ...settings, eveningStartTime: e.target.value })
-          }
-          className="mt-1 min-h-12 w-full rounded-xl bg-black/30 px-3 text-white"
-        />
-        <label className="mt-4 block text-sm text-slate-400">
-          Morning ready starts
-        </label>
-        <input
-          type="time"
-          value={settings.morningStartTime}
-          onChange={(e) =>
-            setSettings({ ...settings, morningStartTime: e.target.value })
-          }
-          className="mt-1 min-h-12 w-full rounded-xl bg-black/30 px-3 text-white"
-        />
-        <label className="mt-4 block text-sm text-slate-400">
-          Minutes per turn
-        </label>
-        <input
-          type="number"
-          min={5}
-          max={60}
-          value={settings.minutesPerTurn}
-          onChange={(e) =>
-            setSettings({
-              ...settings,
-              minutesPerTurn: Number(e.target.value),
-            })
-          }
-          className="mt-1 min-h-12 w-full rounded-xl bg-black/30 px-3 text-white"
-        />
-        <label className="mt-4 flex items-center gap-3 text-sm text-slate-300">
+        <SectionTitle>Schedule</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel>Evening start</FieldLabel>
+            <TextInput
+              type="time"
+              value={settings.eveningStartTime}
+              onChange={(e) =>
+                setSettings({ ...settings, eveningStartTime: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <FieldLabel>Morning start</FieldLabel>
+            <TextInput
+              type="time"
+              value={settings.morningStartTime}
+              onChange={(e) =>
+                setSettings({ ...settings, morningStartTime: e.target.value })
+              }
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <FieldLabel>Minutes per turn</FieldLabel>
+          <TextInput
+            type="number"
+            min={5}
+            max={60}
+            value={settings.minutesPerTurn}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                minutesPerTurn: Number(e.target.value),
+              })
+            }
+          />
+        </div>
+        <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-slate-300">
           <input
             type="checkbox"
+            className="h-5 w-5 rounded accent-indigo-500"
             checked={settings.schoolDaysOnly}
             onChange={(e) =>
               setSettings({
@@ -157,46 +175,54 @@ export function SetupView({ householdId }: { householdId: string }) {
       </Card>
 
       <PrimaryButton disabled={saving} onClick={save}>
-        Save schedule
+        {saving ? "Saving…" : "Save schedule"}
       </PrimaryButton>
 
       <Card>
-        <p className="mb-3 font-semibold">Kid links — text these to each child</p>
+        <SectionTitle>Kid links</SectionTitle>
+        <p className="mb-4 text-sm text-slate-400">
+          Text each link to your child. They should allow notifications and Add
+          to Home Screen.
+        </p>
         <ul className="space-y-3">
           {kids.map((k) => (
-            <li key={k.id} className="rounded-xl bg-black/25 p-3">
-              <p className="font-medium" style={{ color: k.color }}>
-                {k.name}
-              </p>
-              <button
-                type="button"
-                className="mt-2 text-sm text-indigo-300 underline"
-                onClick={() => copyLink(k.sharePath)}
-              >
-                Copy link
-              </button>
+            <li
+              key={k.id}
+              className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/25 p-3"
+            >
+              <KidAvatar name={k.name} color={k.color} size="md" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-white">{k.name}</p>
+                <button
+                  type="button"
+                  className="mt-1 text-sm font-medium text-indigo-300"
+                  onClick={() => copyLink(k.sharePath)}
+                >
+                  Copy link →
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       </Card>
 
       <Card>
-        <p className="mb-2 font-semibold">Parent controls</p>
+        <SectionTitle>Quick actions</SectionTitle>
         <div className="flex flex-col gap-2">
           <PrimaryButton variant="secondary" onClick={() => skip("morning")}>
-            Skip current morning turn
+            Skip morning turn
           </PrimaryButton>
           <PrimaryButton variant="secondary" onClick={() => skip("evening")}>
-            Skip current evening turn
+            Skip evening turn
           </PrimaryButton>
         </div>
       </Card>
 
       <a
         href={`/h/${householdId}/today`}
-        className="text-center text-indigo-300 underline"
+        className="block text-center text-sm font-medium text-indigo-300 underline-offset-4 hover:underline"
       >
-        View family board
+        View family board →
       </a>
     </MobileShell>
   );

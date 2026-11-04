@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileShell, PrimaryButton } from "./MobileShell";
+import { IconShower, IconSunrise } from "./ui/Icons";
 
 type Routine = "evening" | "morning";
 
@@ -59,20 +60,29 @@ export function AlarmView({
 
   const label =
     routine === "evening" ? "Shower time!" : "Get ready for school!";
+  const Icon = routine === "evening" ? IconShower : IconSunrise;
 
   return (
     <MobileShell title={label} subtitle="Tap Done when you're heading in">
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 py-12">
-        <div className="animate-pulse text-7xl">⏰</div>
-        <PrimaryButton
-          onClick={() => {
-            startSound();
-          }}
-        >
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 py-8">
+        <div className="relative flex h-40 w-40 items-center justify-center">
+          <span
+            className="absolute inset-0 animate-ping rounded-full bg-rose-500/20"
+            aria-hidden
+          />
+          <span
+            className="absolute inset-4 animate-pulse rounded-full bg-orange-500/25"
+            aria-hidden
+          />
+          <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-orange-500 shadow-2xl shadow-rose-600/40">
+            <Icon className="h-14 w-14 text-white" />
+          </div>
+        </div>
+        <PrimaryButton variant="secondary" onClick={startSound}>
           Play alarm sound
         </PrimaryButton>
         <PrimaryButton disabled={acting} onClick={done}>
-          Done — my turn
+          Done — I&apos;m going
         </PrimaryButton>
       </div>
     </MobileShell>

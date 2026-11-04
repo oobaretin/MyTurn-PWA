@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PrimaryButton } from "./MobileShell";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -62,19 +61,31 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
     }
   }, [subscribe]);
 
-  if (status === "done") return null;
+  if (status === "done") {
+    return (
+      <p className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 py-2.5 text-center text-sm text-emerald-200">
+        <span aria-hidden>✓</span> Notifications on
+      </p>
+    );
+  }
+
   if (status === "unsupported") {
     return (
-      <p className="text-sm text-amber-200/90">
-        Notifications aren&apos;t supported in this browser. Use Chrome/Safari
-        and Add to Home Screen on iPhone.
+      <p className="rounded-2xl border border-amber-500/20 bg-amber-950/20 px-3 py-2 text-sm text-amber-100/90">
+        Use Safari/Chrome and Add to Home Screen on iPhone for alerts.
       </p>
     );
   }
 
   return (
-    <PrimaryButton onClick={subscribe}>
-      {status === "denied" ? "Enable notifications in Settings" : "Turn on notifications"}
-    </PrimaryButton>
+    <button
+      type="button"
+      onClick={subscribe}
+      className="w-full rounded-2xl border border-indigo-400/30 bg-indigo-500/10 py-3 text-sm font-semibold text-indigo-100 transition active:bg-indigo-500/20"
+    >
+      {status === "denied"
+        ? "Enable notifications in Settings"
+        : "Turn on turn reminders"}
+    </button>
   );
 }
