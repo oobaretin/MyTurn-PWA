@@ -1,7 +1,25 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import type { PrecacheEntry, SerwistGlobalConfig, RuntimeCaching } from "serwist";
+import { NetworkOnly, Serwist } from "serwist";
+
+/** Turn pages and APIs must always hit the network (no stale/offline shell). */
+const liveTurnCaching: RuntimeCaching[] = [
+  {
+    matcher: ({ url: { pathname }, sameOrigin }) =>
+      sameOrigin &&
+      (pathname.startsWith("/api/k/") ||
+        pathname.startsWith("/api/households/") ||
+        pathname.startsWith("/api/vapid")),
+    handler: new NetworkOnly(),
+  },
+  {
+    matcher: ({ url: { pathname }, sameOrigin }) =>
+      sameOrigin &&
+      (pathname.startsWith("/k/") || pathname.startsWith("/h/")),
+    handler: new NetworkOnly(),
+  },
+];
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -16,7 +34,7 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [...liveTurnCaching, ...defaultCache],
 });
 
 serwist.addEventListeners();

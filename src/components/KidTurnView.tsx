@@ -80,6 +80,32 @@ export function KidTurnView({
     return () => clearInterval(t);
   }, [load]);
 
+  useEffect(() => {
+    const logConnectivity = (event: string) => {
+      // #region agent log
+      agentLog(
+        "KidTurnView:connectivity",
+        event,
+        {
+          onLine: navigator.onLine,
+          visibility: document.visibilityState,
+          hasSwController: Boolean(navigator.serviceWorker?.controller),
+        },
+        "H-SW1",
+      );
+      // #endregion
+    };
+    logConnectivity("mount");
+    const onOffline = () => logConnectivity("offline");
+    const onOnline = () => logConnectivity("online");
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+    };
+  }, []);
+
   async function act(action: "start" | "done") {
     setActing(true);
     try {
