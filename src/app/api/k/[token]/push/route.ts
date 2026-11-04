@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
+import { normalizeShareToken } from "@/lib/share-token";
 
 const subSchema = z.object({
   endpoint: z.string().url(),
@@ -15,7 +16,8 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ token: string }> },
 ) {
-  const { token } = await context.params;
+  const { token: rawToken } = await context.params;
+  const token = normalizeShareToken(rawToken);
   try {
     const body = subSchema.parse(await request.json());
     const db = getDb();

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { agentLog } from "@/lib/agent-debug-log";
+import { isPhoneReadyShareUrl, shareUrlHost } from "@/lib/request-origin";
 import { CopyTextButton } from "./CopyTextButton";
 import { KidAvatar } from "./KidAvatar";
 
@@ -19,6 +21,7 @@ export function KidLinkRow({
 }) {
   const [verify, setVerify] = useState<VerifyState>("checking");
   const token = sharePath.replace(/^\/k\//, "");
+  const phoneReady = isPhoneReadyShareUrl(shareUrl);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +31,23 @@ export function KidLinkRow({
           `/api/k/${encodeURIComponent(token)}/state?routine=evening`,
           { cache: "no-store" },
         );
-        if (!cancelled) setVerify(res.ok ? "ok" : "fail");
+        if (!cancelled) {
+          setVerify(res.ok ? "ok" : "fail");
+          // #region agent log
+          agentLog(
+            "KidLinkRow:verify",
+            "link verify finished",
+            {
+              httpStatus: res.status,
+              ok: res.ok,
+              shareHost: shareUrlHost(shareUrl),
+              phoneReady,
+              pathHasK: shareUrl.includes("/k/"),
+            },
+            "H3",
+          );
+          // #endregion
+        }
       } catch {
         if (!cancelled) setVerify("fail");
       }
@@ -37,7 +56,7 @@ export function KidLinkRow({
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, shareUrl, phoneReady]);
 
   return (
     <li className="rounded-2xl border border-white/8 bg-black/25 p-3">
@@ -46,9 +65,13 @@ export function KidLinkRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-white">{name}</p>
-            {verify === "ok" ? (
+            {verify === "ok" && phoneReady ? (
               <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
                 Link OK
+              </span>
+            ) : verify === "ok" && !phoneReady ? (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                Not for phones
               </span>
             ) : verify === "fail" ? (
               <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-300">
@@ -61,7 +84,9 @@ export function KidLinkRow({
           <CopyTextButton
             getText={() => shareUrl}
             label="Copy full link"
-            disabled={verify === "fail" || !shareUrl.startsWith("http")}
+            disabled={
+              verify === "fail" || !phoneReady || !shareUrl.startsWith("http")
+            }
             className="mt-2"
           />
           <p className="mt-2 break-all font-mono text-[11px] leading-snug text-slate-500">
@@ -72,6 +97,12 @@ export function KidLinkRow({
               This link is not in the live database. Create the household on{" "}
               <strong>my-turn-pwa.vercel.app</strong>, not localhost, then copy
               again.
+            </p>
+          ) : !phoneReady ? (
+            <p className="mt-2 text-xs leading-relaxed text-amber-100/90">
+              This URL only works on your computer. On your phone, open{" "}
+              <strong>https://my-turn-pwa.vercel.app</strong>, go to Family
+              setup, then copy or Share the kid link from there.
             </p>
           ) : null}
         </div>

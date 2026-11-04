@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { hasAdminSession, hashPin, verifyPin } from "@/lib/auth";
-import { kidShareUrl, requestOrigin } from "@/lib/request-origin";
+import { agentLog } from "@/lib/agent-debug-log";
+import {
+  kidShareUrl,
+  requestOrigin,
+  shareUrlHost,
+} from "@/lib/request-origin";
 
 const patchSchema = z.object({
   pin: z.string().optional(),
@@ -45,8 +50,33 @@ export async function GET(
 
     const authed = await hasAdminSession(id);
 
+    const siteOrigin = requestOrigin(request);
+    const kidsPayload = kids.map((k) => ({
+      id: k.id,
+      name: k.name,
+      color: k.color,
+      sharePath: `/k/${k.shareToken}`,
+      shareUrl: kidShareUrl(request, k.shareToken),
+    }));
+
+    // #region agent log
+    agentLog(
+      "api/households/settings:GET",
+      "kid share urls built",
+      {
+        siteOrigin,
+        vercelEnv: process.env.VERCEL_ENV ?? "none",
+        kidCount: kidsPayload.length,
+        sampleShareHost: kidsPayload[0]
+          ? shareUrlHost(kidsPayload[0].shareUrl)
+          : "",
+      },
+      "H2",
+    );
+    // #endregion
+
     return NextResponse.json({
-      siteOrigin: requestOrigin(request),
+      siteOrigin,
       authed,
       household: {
         id: household.id,
@@ -58,13 +88,7 @@ export async function GET(
         schoolDaysOnly: household.schoolDaysOnly,
         hasPin: Boolean(household.adminPinHash),
       },
-      kids: kids.map((k) => ({
-        id: k.id,
-        name: k.name,
-        color: k.color,
-        sharePath: `/k/${k.shareToken}`,
-        shareUrl: kidShareUrl(request, k.shareToken),
-      })),
+      kids: kidsPayload,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Error";

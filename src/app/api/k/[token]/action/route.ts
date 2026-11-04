@@ -7,6 +7,7 @@ import {
   performTurnAction,
   type Routine,
 } from "@/lib/day-state";
+import { normalizeShareToken } from "@/lib/share-token";
 
 const bodySchema = z.object({
   action: z.enum(["start", "done"]),
@@ -17,7 +18,8 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ token: string }> },
 ) {
-  const { token } = await context.params;
+  const { token: rawToken } = await context.params;
+  const token = normalizeShareToken(rawToken);
   try {
     const body = bodySchema.parse(await request.json());
     const db = getDb();

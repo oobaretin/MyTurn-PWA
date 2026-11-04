@@ -7,6 +7,7 @@ import { RoutineToggle } from "./RoutineToggle";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { StatusBanner } from "./ui/StatusBanner";
+import { agentLog } from "@/lib/agent-debug-log";
 import { useCountdownMinutes } from "@/lib/useCountdown";
 
 type Routine = "evening" | "morning";
@@ -44,10 +45,24 @@ export function KidTurnView({
   const load = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/k/${shareToken}/state?routine=${routine}`,
+        `/api/k/${encodeURIComponent(shareToken)}/state?routine=${routine}`,
         { cache: "no-store" },
       );
       const data = await res.json();
+      // #region agent log
+      agentLog(
+        "KidTurnView:load",
+        "kid state fetch",
+        {
+          httpStatus: res.status,
+          ok: res.ok,
+          tokenLen: shareToken.length,
+          routine,
+          error: !res.ok ? String(data.error ?? "") : "",
+        },
+        "H4",
+      );
+      // #endregion
       if (!res.ok) throw new Error(data.error ?? "Failed to load");
       setState(data as StateResponse);
       setError(null);
@@ -68,7 +83,7 @@ export function KidTurnView({
   async function act(action: "start" | "done") {
     setActing(true);
     try {
-      const res = await fetch(`/api/k/${shareToken}/action`, {
+      const res = await fetch(`/api/k/${encodeURIComponent(shareToken)}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, routine }),
