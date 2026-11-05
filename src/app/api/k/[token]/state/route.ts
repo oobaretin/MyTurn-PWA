@@ -6,8 +6,8 @@ import {
   getOrCreateDayState,
   type Routine,
 } from "@/lib/day-state";
-import { minutesUntil, slotStartUtc, todayInTimezone } from "@/lib/dates";
-import { currentTurnKidId } from "@/lib/rotation";
+import { todayInTimezone } from "@/lib/dates";
+import { buildOrderSlots } from "@/lib/slot-schedule";
 import { normalizeShareToken } from "@/lib/share-token";
 
 export async function GET(
@@ -53,29 +53,32 @@ export async function GET(
       routine === "evening"
         ? dayState.eveningOrderKidIds
         : dayState.morningOrderKidIds;
-    const turnIndex =
-      routine === "evening"
-        ? dayState.eveningTurnIndex
-        : dayState.morningTurnIndex;
-    const currentId = currentTurnKidId(order, turnIndex);
     const startTime =
       routine === "evening"
         ? household.eveningStartTime
         : household.morningStartTime;
-    const slotStart = slotStartUtc(
+    const slots = buildOrderSlots(
       date,
       startTime,
-      turnIndex,
+      order.length,
       household.minutesPerTurn,
       household.timezone,
     );
 
+    const orderWithSlots = view.order.map((k, i) => ({
+      ...k,
+      ...slots[i]!,
+    }));
+
+    const myIndex = order.indexOf(kid.id);
+    const mySlot = myIndex >= 0 ? slots[myIndex] : null;
+
     return NextResponse.json({
       kid: { id: kid.id, name: kid.name, color: kid.color },
       ...view,
-      minutesUntilTurn:
-        currentId === kid.id ? 0 : minutesUntil(slotStart),
-      slotStartIso: slotStart.toISOString(),
+      order: orderWithSlots,
+      mySlotStartIso: mySlot?.slotStartIso ?? null,
+      mySlotLocalTime: mySlot?.slotLocalTime ?? null,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Error";

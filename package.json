@@ -7,7 +7,7 @@
     "build": "SERWIST_SUPPRESS_TURBOPACK_WARNING=1 next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/lib/rotation.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/rotation.test.ts src/lib/slot-schedule.test.ts",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs"
   },
   "dependencies": {

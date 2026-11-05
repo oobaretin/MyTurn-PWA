@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getOrCreateDayState } from "@/lib/day-state";
-import { currentTurnKidId } from "@/lib/rotation";
+import { currentTurnKidId, routineComplete } from "@/lib/rotation";
+import { buildOrderSlots } from "@/lib/slot-schedule";
 
 export async function GET(
   _request: Request,
@@ -26,20 +27,42 @@ export async function GET(
       order: string[],
       turnIndex: number,
       label: string,
+      startTime: string,
     ) {
       const currentId = currentTurnKidId(order, turnIndex);
       const current = kids.find((k) => k.id === currentId);
+      const complete = routineComplete(order, turnIndex);
+      const slots = buildOrderSlots(
+        dayState.date,
+        startTime,
+        order.length,
+        household.minutesPerTurn,
+        household.timezone,
+      );
+
       return {
         label,
         turnIndex,
+        complete,
         current: current
           ? { name: current.name, color: current.color }
           : null,
-        order: order.map((kidId) => {
+        order: order.map((kidId, i) => {
           const k = kids.find((x) => x.id === kidId);
-          return k ? { name: k.name, color: k.color } : { name: "?", color: "#888" };
+          return k
+            ? {
+                id: k.id,
+                name: k.name,
+                color: k.color,
+                ...slots[i]!,
+              }
+            : {
+                id: kidId,
+                name: "?",
+                color: "#888",
+                ...slots[i]!,
+              };
         }),
-        complete: turnIndex >= order.length,
       };
     }
 
@@ -49,11 +72,13 @@ export async function GET(
         dayState.eveningOrderKidIds,
         dayState.eveningTurnIndex,
         "Evening shower",
+        household.eveningStartTime,
       ),
       morning: routineSnapshot(
         dayState.morningOrderKidIds,
         dayState.morningTurnIndex,
         "Morning ready",
+        household.morningStartTime,
       ),
       eveningFirstRecorded: dayState.eveningFirstKidId,
     });

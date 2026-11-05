@@ -12,7 +12,7 @@ import { PushSubscribe } from "./PushSubscribe";
 import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { StatusBanner } from "./ui/StatusBanner";
-import { useCountdownMinutes } from "@/lib/useCountdown";
+import { TurnCountdown } from "./ui/TurnCountdown";
 
 type Routine = "evening" | "morning";
 
@@ -22,11 +22,16 @@ type StateResponse = {
   isMyTurn: boolean;
   complete: boolean;
   currentKid: { id: string; name: string; color: string } | null;
-  minutesUntilTurn: number;
   turnIndex: number;
-  slotStartIso?: string;
   started: boolean;
-  order: { id: string; name: string; color: string }[];
+  mySlotLocalTime?: string | null;
+  order: {
+    id: string;
+    name: string;
+    color: string;
+    slotStartIso: string;
+    slotLocalTime: string;
+  }[];
 };
 
 function defaultRoutine(): Routine {
@@ -77,10 +82,6 @@ export function KidTurnView({
   const firstLoad = useRef(true);
   const prevIsMyTurn = useRef(false);
   const router = useRouter();
-
-  const countdown = useCountdownMinutes(
-    state && !state.isMyTurn ? state.slotStartIso : undefined,
-  );
 
   const load = useCallback(async () => {
     if (!firstLoad.current) setRefreshing(true);
@@ -265,14 +266,35 @@ export function KidTurnView({
                     size="lg"
                   />
                 ) : null}
-                {(countdown ?? state.minutesUntilTurn) > 0 ? (
-                  <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-1.5 text-sm text-slate-300">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
-                    Your turn in ~{countdown ?? state.minutesUntilTurn} min
-                  </p>
-                ) : (
-                  <p className="mt-4 text-sm text-slate-500">Almost your turn</p>
-                )}
+                <p className="mt-3 text-sm text-slate-400">
+                  {state.currentKid?.name ?? "Someone"} is up now
+                </p>
+                {(() => {
+                  const myIndex = state.order.findIndex(
+                    (k) => k.id === state.kid.id,
+                  );
+                  const mySlot = state.order[myIndex];
+                  if (myIndex < 0 || !mySlot) return null;
+                  return (
+                    <div className="mt-5 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Your scheduled turn
+                      </p>
+                      <div className="mt-2 flex items-center justify-center">
+                        <TurnCountdown
+                          index={myIndex}
+                          turnIndex={state.turnIndex}
+                          complete={state.complete}
+                          slotStartIso={mySlot.slotStartIso}
+                          slotLocalTime={
+                            state.mySlotLocalTime ?? mySlot.slotLocalTime
+                          }
+                          size="lg"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </Card>
@@ -312,11 +334,13 @@ export function KidTurnView({
                           <span className="ml-2 text-xs text-slate-500">(you)</span>
                         ) : null}
                       </span>
-                      {isCurrent ? (
-                        <span className="text-xs font-semibold text-indigo-300">
-                          Now
-                        </span>
-                      ) : null}
+                      <TurnCountdown
+                        index={i}
+                        turnIndex={state.turnIndex}
+                        complete={state.complete}
+                        slotStartIso={k.slotStartIso}
+                        slotLocalTime={k.slotLocalTime}
+                      />
                     </li>
                   );
                 })}

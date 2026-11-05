@@ -9,6 +9,7 @@ import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { ParentNav } from "./ui/ParentNav";
 import { StatusBanner } from "./ui/StatusBanner";
+import { TurnCountdown } from "./ui/TurnCountdown";
 import { WelcomeKidLinks } from "./ui/WelcomeKidLinks";
 
 type Snapshot = {
@@ -16,7 +17,13 @@ type Snapshot = {
   turnIndex: number;
   current: { name: string; color: string } | null;
   complete: boolean;
-  order: { name: string; color: string }[];
+  order: {
+    id: string;
+    name: string;
+    color: string;
+    slotStartIso: string;
+    slotLocalTime: string;
+  }[];
 };
 
 type Routine = "evening" | "morning";
@@ -78,7 +85,16 @@ function RoutineCard({
               {snap.current.name}
             </p>
             {upNext ? (
-              <p className="mt-1 text-sm text-slate-400">Next: {upNext.name}</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-400">Next: {upNext.name}</p>
+                <TurnCountdown
+                  index={snap.turnIndex + 1}
+                  turnIndex={snap.turnIndex}
+                  complete={snap.complete}
+                  slotStartIso={upNext.slotStartIso}
+                  slotLocalTime={upNext.slotLocalTime}
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -98,7 +114,7 @@ function RoutineCard({
         <ol className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
           {snap.order.map((k, i) => (
             <li
-              key={`${k.name}-${i}`}
+              key={k.id}
               className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${
                 !snap.complete && i === snap.turnIndex
                   ? "bg-indigo-500/15 text-indigo-100"
@@ -110,7 +126,14 @@ function RoutineCard({
                 className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: k.color }}
               />
-              {k.name}
+              <span className="min-w-0 flex-1 truncate">{k.name}</span>
+              <TurnCountdown
+                index={i}
+                turnIndex={snap.turnIndex}
+                complete={snap.complete}
+                slotStartIso={k.slotStartIso}
+                slotLocalTime={k.slotLocalTime}
+              />
             </li>
           ))}
         </ol>

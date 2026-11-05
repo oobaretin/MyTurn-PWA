@@ -1,26 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatCountdownMs, msUntil } from "@/lib/countdown-format";
 
-export function useCountdownMinutes(isoTarget: string | undefined): number | null {
-  const [minutes, setMinutes] = useState<number | null>(null);
+export function useCountdown(isoTarget: string | undefined) {
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isoTarget) {
-      setMinutes(null);
+      setRemainingMs(null);
       return;
     }
 
     function tick() {
-      const target = new Date(isoTarget!).getTime();
-      const diff = target - Date.now();
-      setMinutes(Math.max(0, Math.ceil(diff / 60_000)));
+      setRemainingMs(msUntil(isoTarget!));
     }
 
     tick();
-    const id = setInterval(tick, 15_000);
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [isoTarget]);
 
-  return minutes;
+  const formatted =
+    remainingMs === null ? null : formatCountdownMs(remainingMs);
+  const isDue = remainingMs !== null && remainingMs <= 0;
+
+  return { remainingMs, formatted, isDue };
+}
+
+/** @deprecated Use useCountdown for second-accurate display */
+export function useCountdownMinutes(isoTarget: string | undefined): number | null {
+  const { remainingMs } = useCountdown(isoTarget);
+  if (remainingMs === null) return null;
+  return Math.ceil(remainingMs / 60_000);
 }
