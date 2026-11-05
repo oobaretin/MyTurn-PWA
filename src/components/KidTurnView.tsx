@@ -35,11 +35,6 @@ type StateResponse = {
   }[];
 };
 
-function defaultRoutine(): Routine {
-  const h = new Date().getHours();
-  return h >= 16 || h < 10 ? "evening" : "morning";
-}
-
 function shellCopy(
   state: StateResponse | null,
   routine: Routine,
@@ -70,8 +65,8 @@ export function KidTurnView({
   shareToken: string;
   initialRoutine?: Routine;
 }) {
-  const [routine] = useState<Routine>(
-    initialRoutine ?? defaultRoutine(),
+  const [routine, setRoutine] = useState<Routine | null>(
+    initialRoutine ?? null,
   );
   const [state, setState] = useState<StateResponse | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -92,13 +87,16 @@ export function KidTurnView({
   const load = useCallback(async () => {
     if (!firstLoad.current) setRefreshing(true);
     try {
+      const routineQuery = routine ?? "auto";
       const res = await fetch(
-        `/api/k/${encodeURIComponent(shareToken)}/state?routine=${routine}`,
+        `/api/k/${encodeURIComponent(shareToken)}/state?routine=${routineQuery}`,
         { cache: "no-store" },
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to load");
-      setState(data as StateResponse);
+      const resolved = data as StateResponse;
+      setState(resolved);
+      setRoutine(resolved.routine);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
@@ -108,6 +106,8 @@ export function KidTurnView({
       setRefreshing(false);
     }
   }, [shareToken, routine]);
+
+  const activeRoutine = routine ?? state?.routine ?? "morning";
 
   useEffect(() => {
     void load();
@@ -133,18 +133,18 @@ export function KidTurnView({
     if (!myTurnSlotIso) return;
     if (msUntilMySlot === null || msUntilMySlot > 0) return;
 
-    const key = `myturn-alarm-slot-${routine}-${state.turnIndex}`;
+    const key = `myturn-alarm-slot-${activeRoutine}-${state.turnIndex}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
 
     router.push(
-      `/k/${encodeURIComponent(shareToken)}/alarm?routine=${routine}`,
+      `/k/${encodeURIComponent(shareToken)}/alarm?routine=${activeRoutine}`,
     );
   }, [
     state,
     myTurnSlotIso,
     msUntilMySlot,
-    routine,
+    activeRoutine,
     shareToken,
     router,
   ]);
@@ -155,7 +155,7 @@ export function KidTurnView({
       const res = await fetch(`/api/k/${encodeURIComponent(shareToken)}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, routine }),
+        body: JSON.stringify({ action, routine: activeRoutine }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Action failed");
@@ -167,7 +167,11 @@ export function KidTurnView({
     }
   }
 
-  const { title, subtitle } = shellCopy(state, routine, initialLoading);
+  const { title, subtitle } = shellCopy(
+    state,
+    activeRoutine,
+    initialLoading,
+  );
 
   const waitingForScheduledStart =
     state?.isMyTurn &&

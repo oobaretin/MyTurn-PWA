@@ -6,6 +6,7 @@ import {
   getOrCreateDayState,
   type Routine,
 } from "@/lib/day-state";
+import { inferActiveRoutine, parseRoutineParam } from "@/lib/active-routine";
 import { todayInTimezone } from "@/lib/dates";
 import { buildOrderSlots } from "@/lib/slot-schedule";
 import { normalizeShareToken } from "@/lib/share-token";
@@ -17,7 +18,7 @@ export async function GET(
   const { token: rawToken } = await context.params;
   const token = normalizeShareToken(rawToken);
   const url = new URL(request.url);
-  const routine = (url.searchParams.get("routine") ?? "evening") as Routine;
+  const routineParam = parseRoutineParam(url.searchParams.get("routine"));
 
   try {
     const db = getDb();
@@ -40,6 +41,10 @@ export async function GET(
     }
 
     const { dayState, kids } = await getOrCreateDayState(household);
+    const routine: Routine =
+      routineParam === "auto"
+        ? inferActiveRoutine(household, dayState)
+        : routineParam;
     const view = buildKidViewState(
       kid,
       household,
