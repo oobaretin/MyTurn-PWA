@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { saveLastHouseholdId } from "@/lib/household-storage";
 import {
   Card,
   FieldLabel,
@@ -40,6 +42,10 @@ export function SetupView({ householdId }: { householdId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showHouseholdId, setShowHouseholdId] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    saveLastHouseholdId(householdId);
+  }, [householdId]);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -91,20 +97,19 @@ export function SetupView({ householdId }: { householdId: string }) {
     setMessage(res.ok ? "Saved" : "Could not save");
   }
 
-  async function skip(routine: "evening" | "morning") {
-    const res = await fetch(`/api/households/${householdId}/skip`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ routine, pin }),
-    });
-    setMessage(res.ok ? "Skipped to next kid" : "Skip failed");
-  }
-
   if (!settings) {
     return (
       <MobileShell title="Settings" subtitle="Loading…">
         {loadError ? (
-          <StatusBanner tone="error">{loadError}</StatusBanner>
+          <>
+            <StatusBanner tone="error">{loadError}</StatusBanner>
+            <Link
+              href="/"
+              className="text-center text-sm font-semibold text-indigo-300"
+            >
+              Go home
+            </Link>
+          </>
         ) : (
           <LoadingSkeleton />
         )}
@@ -116,16 +121,22 @@ export function SetupView({ householdId }: { householdId: string }) {
     return (
       <MobileShell title="Settings" subtitle={settings.name}>
         <Card>
-          <FieldLabel>PIN</FieldLabel>
+          <FieldLabel>Parent PIN</FieldLabel>
           <TextInput
             type="password"
             inputMode="numeric"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            placeholder="Parent PIN"
+            placeholder="Same PIN you set when creating"
           />
         </Card>
         <PrimaryButton onClick={login}>Unlock</PrimaryButton>
+        <Link
+          href={`/h/${householdId}/today`}
+          className="text-center text-sm font-semibold text-slate-400"
+        >
+          Back to Today
+        </Link>
       </MobileShell>
     );
   }
@@ -136,24 +147,12 @@ export function SetupView({ householdId }: { householdId: string }) {
         <StatusBanner tone="info">{message}</StatusBanner>
       ) : null}
 
-      <Card>
-        <SectionTitle>Kids</SectionTitle>
-        <ul className="space-y-2">
-          {kids.map((k) => (
-            <KidLinkRow
-              key={k.id}
-              name={k.name}
-              color={k.color}
-              shareUrl={
-                k.shareUrl ||
-                (typeof window !== "undefined"
-                  ? `${window.location.origin}${k.sharePath}`
-                  : k.sharePath)
-              }
-            />
-          ))}
-        </ul>
-      </Card>
+      <Link
+        href={`/h/${householdId}/today`}
+        className="text-center text-sm font-semibold text-indigo-300"
+      >
+        ← Today board
+      </Link>
 
       <Card>
         <SectionTitle>Schedule</SectionTitle>
@@ -210,21 +209,31 @@ export function SetupView({ householdId }: { householdId: string }) {
         </label>
       </Card>
 
+      <Card>
+        <SectionTitle>Kid links</SectionTitle>
+        <p className="mb-3 text-sm text-slate-400">
+          Each child opens their link on their phone for turns and alerts.
+        </p>
+        <ul className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-black/20">
+          {kids.map((k) => (
+            <KidLinkRow
+              key={k.id}
+              name={k.name}
+              color={k.color}
+              shareUrl={
+                k.shareUrl ||
+                (typeof window !== "undefined"
+                  ? `${window.location.origin}${k.sharePath}`
+                  : k.sharePath)
+              }
+            />
+          ))}
+        </ul>
+      </Card>
+
       <PrimaryButton disabled={saving} onClick={save}>
         {saving ? "Saving…" : "Save changes"}
       </PrimaryButton>
-
-      <Card>
-        <SectionTitle>Quick actions</SectionTitle>
-        <div className="flex flex-col gap-2">
-          <PrimaryButton variant="secondary" onClick={() => skip("morning")}>
-            Skip morning turn
-          </PrimaryButton>
-          <PrimaryButton variant="secondary" onClick={() => skip("evening")}>
-            Skip evening turn
-          </PrimaryButton>
-        </div>
-      </Card>
 
       <Card className="!p-0 overflow-hidden">
         <button

@@ -32,6 +32,7 @@ export function CopyTextButton({
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
+      if ("vibrate" in navigator) navigator.vibrate(12);
       window.setTimeout(() => setCopied(false), 2000);
       return;
     } catch {
@@ -48,6 +49,7 @@ export function CopyTextButton({
       document.execCommand("copy");
       ta.remove();
       setCopied(true);
+      if ("vibrate" in navigator) navigator.vibrate(12);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard blocked */

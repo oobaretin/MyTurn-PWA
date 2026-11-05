@@ -1,7 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  getLastHouseholdId,
+  saveLastHouseholdId,
+} from "@/lib/household-storage";
 import {
   Card,
   FieldLabel,
@@ -20,7 +24,12 @@ export function HomeCreateForm() {
   const router = useRouter();
   const [name, setName] = useState("Our family");
   const [pin, setPin] = useState("");
-  const [kidNames, setKidNames] = useState(["", ""]);
+  const [kidNames, setKidNames] = useState([""]);
+  const [lastHouseholdId, setLastHouseholdId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastHouseholdId(getLastHouseholdId());
+  }, []);
   const [eveningStartTime, setEveningStartTime] = useState("19:30");
   const [morningStartTime, setMorningStartTime] = useState("06:30");
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +73,8 @@ export function HomeCreateForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
-      router.push(`/h/${data.householdId}/setup`);
+      saveLastHouseholdId(data.householdId);
+      router.push(`/h/${data.householdId}/today?new=1`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error";
       setError(friendlyError(msg));
@@ -74,8 +84,16 @@ export function HomeCreateForm() {
   }
 
   function goJoin() {
-    if (joinId.trim()) {
-      router.push(`/h/${joinId.trim()}/setup`);
+    const id = joinId.trim();
+    if (id) {
+      saveLastHouseholdId(id);
+      router.push(`/h/${id}/today`);
+    }
+  }
+
+  function continueLast() {
+    if (lastHouseholdId) {
+      router.push(`/h/${lastHouseholdId}/today`);
     }
   }
 
@@ -110,6 +128,14 @@ export function HomeCreateForm() {
     >
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
+      {lastHouseholdId ? (
+        <Card>
+          <PrimaryButton variant="secondary" onClick={continueLast}>
+            Continue your household
+          </PrimaryButton>
+        </Card>
+      ) : null}
+
       <Card>
         <SectionTitle>Create your household</SectionTitle>
         <FieldLabel>Family name</FieldLabel>
@@ -119,7 +145,7 @@ export function HomeCreateForm() {
           <TextInput
             type="password"
             inputMode="numeric"
-            placeholder="4+ digits"
+            placeholder="Optional — locks Settings on this device"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
           />

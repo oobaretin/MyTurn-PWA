@@ -77,12 +77,17 @@ export function PrimaryButton({
           ? "bg-transparent text-indigo-200 underline-offset-4 hover:underline"
           : "border border-white/15 bg-white/8 text-white backdrop-blur-sm active:bg-white/12";
 
+  const size =
+    variant === "secondary" || variant === "ghost"
+      ? "min-h-11 rounded-xl px-4 text-sm"
+      : "min-h-14 rounded-2xl px-6 text-lg";
+
   return (
     <button
       type="button"
       disabled={disabled || loading}
       onClick={onClick}
-      className={`min-h-14 w-full rounded-2xl px-6 text-lg font-semibold transition disabled:opacity-40 disabled:active:scale-100 ${styles}`}
+      className={`w-full font-semibold transition disabled:opacity-40 disabled:active:scale-100 ${size} ${styles}`}
     >
       {loading ? (
         <span className="inline-flex items-center justify-center gap-2">
@@ -145,8 +150,6 @@ export function TextInput({
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-      {children}
-    </h2>
+    <h2 className="mb-3 text-sm font-semibold text-slate-200">{children}</h2>
   );
 }

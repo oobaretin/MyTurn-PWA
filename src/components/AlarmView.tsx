@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileShell, PrimaryButton, StickyActionBar } from "./MobileShell";
+import { StatusBanner } from "./ui/StatusBanner";
 import { IconShower, IconSunrise } from "./ui/Icons";
 
 type Routine = "evening" | "morning";
@@ -14,6 +15,7 @@ export function AlarmView({
   routine: Routine;
 }) {
   const [acting, setActing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<OscillatorNode | null>(null);
 
   const stopSound = useCallback(() => {
@@ -50,12 +52,20 @@ export function AlarmView({
   async function done() {
     stopSound();
     setActing(true);
-    await fetch(`/api/k/${shareToken}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "done", routine }),
-    });
-    window.location.href = `/k/${shareToken}?routine=${routine}`;
+    setError(null);
+    try {
+      const res = await fetch(`/api/k/${encodeURIComponent(shareToken)}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "done", routine }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not confirm");
+      window.location.href = `/k/${shareToken}`;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not confirm");
+      setActing(false);
+    }
   }
 
   const label =
@@ -82,6 +92,7 @@ export function AlarmView({
           Play alarm sound
         </PrimaryButton>
       </div>
+      {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       <StickyActionBar>
         <PrimaryButton disabled={acting} loading={acting} onClick={done}>
           Done — I&apos;m going

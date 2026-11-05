@@ -12,6 +12,13 @@ export default async function KidPage({
   const { shareToken: rawToken } = await params;
   const shareToken = decodeURIComponent(rawToken).trim();
   const sp = await searchParams;
-  const routine = sp.routine === "morning" ? "morning" : "evening";
-  return <KidTurnView shareToken={shareToken} initialRoutine={routine} />;
+  const initialRoutine =
+    sp.routine === "morning"
+      ? ("morning" as const)
+      : sp.routine === "evening"
+        ? ("evening" as const)
+        : undefined;
+  return (
+    <KidTurnView shareToken={shareToken} initialRoutine={initialRoutine} />
+  );
 }
