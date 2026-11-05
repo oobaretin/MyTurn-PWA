@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MobileShell, PrimaryButton, StickyActionBar } from "./MobileShell";
 import { StatusBanner } from "./ui/StatusBanner";
 import { IconShower, IconSunrise } from "./ui/Icons";
+import { startAlarmSound } from "@/lib/alarm-sound";
 
 type Routine = "evening" | "morning";
 
@@ -16,54 +17,43 @@ export function AlarmView({
 }) {
   const [acting, setActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const audioRef = useRef<OscillatorNode | null>(null);
-
-  const stopSound = useCallback(() => {
-    try {
-      audioRef.current?.stop();
-    } catch {
-      /* already stopped */
-    }
-    audioRef.current = null;
-  }, []);
-
-  const startSound = useCallback(() => {
-    try {
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.value = 880;
-      osc.connect(ctx.destination);
-      osc.start();
-      audioRef.current = osc;
-      if ("vibrate" in navigator) {
-        navigator.vibrate([400, 200, 400, 200, 400]);
-      }
-    } catch {
-      /* autoplay blocked until tap */
-    }
-  }, []);
+  const alarmRef = useRef<ReturnType<typeof startAlarmSound> | null>(null);
+  const userDismissedRef = useRef(false);
 
   useEffect(() => {
-    startSound();
-    return () => stopSound();
-  }, [startSound, stopSound]);
+    alarmRef.current?.stop();
+    alarmRef.current = startAlarmSound();
+    return () => {
+      if (userDismissedRef.current) {
+        alarmRef.current?.stop();
+        alarmRef.current = null;
+      }
+    };
+  }, []);
 
-  async function done() {
-    stopSound();
+  function nudgeSound() {
+    alarmRef.current?.nudge();
+  }
+
+  async function ackStart() {
     setActing(true);
     setError(null);
     try {
       const res = await fetch(`/api/k/${encodeURIComponent(shareToken)}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "done", routine }),
+        body: JSON.stringify({ action: "start", routine }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not confirm");
-      window.location.href = `/k/${shareToken}`;
+      if (!res.ok) throw new Error(data.error ?? "Could not start");
+
+      userDismissedRef.current = true;
+      alarmRef.current?.stop();
+      alarmRef.current = null;
+
+      window.location.href = `/k/${encodeURIComponent(shareToken)}`;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not confirm");
+      setError(e instanceof Error ? e.message : "Could not start");
       setActing(false);
     }
   }
@@ -73,7 +63,10 @@ export function AlarmView({
   const Icon = routine === "evening" ? IconShower : IconSunrise;
 
   return (
-    <MobileShell title={label} subtitle="Tap Done when you're heading in">
+    <MobileShell
+      title={label}
+      subtitle="Alarm stops when you tap I'm going below"
+    >
       <div className="flex flex-1 flex-col items-center justify-center gap-8 py-8">
         <div className="relative flex h-40 w-40 items-center justify-center">
           <span
@@ -88,14 +81,14 @@ export function AlarmView({
             <Icon className="h-14 w-14 text-white" />
           </div>
         </div>
-        <PrimaryButton variant="secondary" onClick={startSound}>
-          Play alarm sound
+        <PrimaryButton variant="secondary" onClick={nudgeSound}>
+          Can&apos;t hear it? Tap here
         </PrimaryButton>
       </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       <StickyActionBar>
-        <PrimaryButton disabled={acting} loading={acting} onClick={done}>
-          Done — I&apos;m going
+        <PrimaryButton disabled={acting} loading={acting} onClick={ackStart}>
+          I&apos;m going — start my turn
         </PrimaryButton>
       </StickyActionBar>
     </MobileShell>

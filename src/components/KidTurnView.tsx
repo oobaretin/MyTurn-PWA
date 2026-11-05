@@ -13,6 +13,7 @@ import { KidAvatar } from "./ui/KidAvatar";
 import { LoadingSkeleton } from "./ui/LoadingSkeleton";
 import { StatusBanner } from "./ui/StatusBanner";
 import { TurnCountdown } from "./ui/TurnCountdown";
+import { useCountdown } from "@/lib/useCountdown";
 
 type Routine = "evening" | "morning";
 
@@ -80,8 +81,13 @@ export function KidTurnView({
   const [showLineup, setShowLineup] = useState(false);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const firstLoad = useRef(true);
-  const prevIsMyTurn = useRef(false);
   const router = useRouter();
+
+  const myTurnSlotIso =
+    state?.isMyTurn && !state.complete && !state.started
+      ? state.order.find((k) => k.id === state.kid.id)?.slotStartIso
+      : undefined;
+  const { remainingMs: msUntilMySlot } = useCountdown(myTurnSlotIso);
 
   const load = useCallback(async () => {
     if (!firstLoad.current) setRefreshing(true);
@@ -123,23 +129,25 @@ export function KidTurnView({
   }, []);
 
   useEffect(() => {
-    if (!state || state.complete) return;
-    if (!state.isMyTurn) {
-      prevIsMyTurn.current = false;
-      return;
-    }
-    const becameMine = !prevIsMyTurn.current;
-    prevIsMyTurn.current = true;
-    if (!becameMine) return;
+    if (!state?.isMyTurn || state.complete || state.started) return;
+    if (!myTurnSlotIso) return;
+    if (msUntilMySlot === null || msUntilMySlot > 0) return;
 
-    const key = `myturn-alarm-${routine}-${state.turnIndex}`;
+    const key = `myturn-alarm-slot-${routine}-${state.turnIndex}`;
     if (sessionStorage.getItem(key)) return;
-
     sessionStorage.setItem(key, "1");
+
     router.push(
       `/k/${encodeURIComponent(shareToken)}/alarm?routine=${routine}`,
     );
-  }, [state, routine, shareToken, router]);
+  }, [
+    state,
+    myTurnSlotIso,
+    msUntilMySlot,
+    routine,
+    shareToken,
+    router,
+  ]);
 
   async function act(action: "start" | "done") {
     setActing(true);
@@ -161,10 +169,22 @@ export function KidTurnView({
 
   const { title, subtitle } = shellCopy(state, routine, initialLoading);
 
+  const waitingForScheduledStart =
+    state?.isMyTurn &&
+    !state.started &&
+    !state.complete &&
+    (msUntilMySlot ?? 0) > 0;
+
   const actionBar =
     state && !state.complete && state.isMyTurn ? (
       <StickyActionBar>
         {!state.started ? (
+          waitingForScheduledStart ? (
+            <p className="text-center text-sm text-slate-400">
+              Start unlocks when the timer above hits zero (alarm will
+              nudge you too).
+            </p>
+          ) : (
           <PrimaryButton
             disabled={acting}
             loading={acting}
@@ -172,6 +192,7 @@ export function KidTurnView({
           >
             Start my turn
           </PrimaryButton>
+          )
         ) : (
           <>
             <StatusBanner tone="success" icon="●">
@@ -253,8 +274,29 @@ export function KidTurnView({
                   size="xl"
                   pulse
                 />
+                {(() => {
+                  const myIndex = state.order.findIndex(
+                    (k) => k.id === state.kid.id,
+                  );
+                  const mySlot = state.order[myIndex];
+                  if (!mySlot) return null;
+                  return (
+                    <div className="mt-4 w-full rounded-2xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-4">
+                      <TurnCountdown
+                        index={myIndex}
+                        turnIndex={state.turnIndex}
+                        complete={state.complete}
+                        slotStartIso={mySlot.slotStartIso}
+                        slotLocalTime={mySlot.slotLocalTime}
+                        size="lg"
+                        heading="Your turn starts in"
+                      />
+                    </div>
+                  );
+                })()}
                 <p className="mt-4 text-sm text-slate-400">
-                  Tap Start when you begin, Done when you&apos;re finished.
+                  When the timer hits zero, start your turn. Tap Done when you
+                  finish.
                 </p>
               </div>
             ) : (
@@ -273,25 +315,30 @@ export function KidTurnView({
                   const myIndex = state.order.findIndex(
                     (k) => k.id === state.kid.id,
                   );
-                  const mySlot = state.order[myIndex];
-                  if (myIndex < 0 || !mySlot) return null;
+                  const currentSlot = state.order[state.turnIndex];
+                  if (!currentSlot) return null;
+                  const queueHint =
+                    myIndex === state.turnIndex + 1
+                      ? "You're up next"
+                      : myIndex > state.turnIndex
+                        ? `${myIndex - state.turnIndex} people ahead of you`
+                        : null;
                   return (
                     <div className="mt-5 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Your scheduled turn
-                      </p>
-                      <div className="mt-2 flex items-center justify-center">
+                      <div className="mt-1 flex items-center justify-center">
                         <TurnCountdown
-                          index={myIndex}
+                          index={state.turnIndex}
                           turnIndex={state.turnIndex}
                           complete={state.complete}
-                          slotStartIso={mySlot.slotStartIso}
-                          slotLocalTime={
-                            state.mySlotLocalTime ?? mySlot.slotLocalTime
-                          }
+                          slotStartIso={currentSlot.slotStartIso}
+                          slotLocalTime={currentSlot.slotLocalTime}
                           size="lg"
+                          heading="Turn starts in"
                         />
                       </div>
+                      {queueHint ? (
+                        <p className="mt-3 text-sm text-slate-500">{queueHint}</p>
+                      ) : null}
                     </div>
                   );
                 })()}

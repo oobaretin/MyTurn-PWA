@@ -26,6 +26,7 @@ export function TurnCountdown({
   slotStartIso,
   slotLocalTime,
   size = "sm",
+  heading,
 }: {
   index: number;
   turnIndex: number;
@@ -33,6 +34,8 @@ export function TurnCountdown({
   slotStartIso: string;
   slotLocalTime?: string;
   size?: "sm" | "lg";
+  /** e.g. "Turn starts in" for the kid first in line */
+  heading?: string;
 }) {
   const phase = turnWaitPhase(index, turnIndex, complete, slotStartIso);
   const { formatted } = useCountdown(
@@ -47,6 +50,11 @@ export function TurnCountdown({
       <div
         className={`${isLg ? "space-y-1 text-center" : "text-right"}`}
       >
+        {heading && isLg ? (
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            {heading}
+          </p>
+        ) : null}
         {slotLocalTime ? (
           <p
             className={

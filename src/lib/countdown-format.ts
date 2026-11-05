@@ -16,6 +16,7 @@ export function formatCountdownMs(ms: number): string {
 
 export type TurnWaitPhase = "done" | "now" | "up-next" | "countdown";
 
+/** Countdown applies only to whoever is first in line (current turnIndex). */
 export function turnWaitPhase(
   index: number,
   turnIndex: number,
@@ -24,7 +25,7 @@ export function turnWaitPhase(
   now = Date.now(),
 ): TurnWaitPhase {
   if (complete || index < turnIndex) return "done";
-  if (index === turnIndex) return "now";
-  if (msUntil(slotStartIso, now) <= 0) return "up-next";
-  return "countdown";
+  if (index > turnIndex) return "up-next";
+  if (msUntil(slotStartIso, now) > 0) return "countdown";
+  return "now";
 }

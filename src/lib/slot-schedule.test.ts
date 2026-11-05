@@ -12,9 +12,10 @@ describe("scheduled turn slots", () => {
 });
 
 describe("turnWaitPhase", () => {
-  it("counts down for a later index in line", () => {
+  it("counts down only for the kid first in line before slot time", () => {
     const future = new Date(Date.now() + 60_000).toISOString();
-    assert.equal(turnWaitPhase(2, 0, false, future), "countdown");
-    assert.equal(msUntil(future) > 0, true);
+    assert.equal(turnWaitPhase(0, 0, false, future), "countdown");
+    assert.equal(turnWaitPhase(1, 0, false, future), "up-next");
+    assert.equal(turnWaitPhase(0, 0, false, new Date(Date.now() - 1000).toISOString()), "now");
   });
 });

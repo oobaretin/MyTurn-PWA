@@ -17,3 +17,12 @@ export function getLastHouseholdId(): string | null {
     return null;
   }
 }
+
+export function clearLastHouseholdId() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* private mode */
+  }
+}

@@ -84,17 +84,24 @@ function RoutineCard({
             >
               {snap.current.name}
             </p>
-            {upNext ? (
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-400">Next: {upNext.name}</p>
+            {snap.order[snap.turnIndex] ? (
+              <div className="mt-3">
                 <TurnCountdown
-                  index={snap.turnIndex + 1}
+                  index={snap.turnIndex}
                   turnIndex={snap.turnIndex}
                   complete={snap.complete}
-                  slotStartIso={upNext.slotStartIso}
-                  slotLocalTime={upNext.slotLocalTime}
+                  slotStartIso={snap.order[snap.turnIndex]!.slotStartIso}
+                  slotLocalTime={snap.order[snap.turnIndex]!.slotLocalTime}
+                  size="lg"
+                  heading="Turn starts in"
                 />
               </div>
+            ) : null}
+            {upNext ? (
+              <p className="mt-2 text-sm text-slate-400">
+                Next: {upNext.name}
+                {upNext.slotLocalTime ? ` · ${upNext.slotLocalTime}` : ""}
+              </p>
             ) : null}
           </div>
         </div>

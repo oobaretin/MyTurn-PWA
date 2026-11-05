@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { saveLastHouseholdId } from "@/lib/household-storage";
+import {
+  clearLastHouseholdId,
+  saveLastHouseholdId,
+} from "@/lib/household-storage";
 import {
   Card,
   FieldLabel,
@@ -26,6 +30,7 @@ type KidLink = {
 };
 
 export function SetupView({ householdId }: { householdId: string }) {
+  const router = useRouter();
   const [authed, setAuthed] = useState(false);
   const [pin, setPin] = useState("");
   const [settings, setSettings] = useState<{
@@ -42,6 +47,9 @@ export function SetupView({ householdId }: { householdId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showHouseholdId, setShowHouseholdId] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removingKidId, setRemovingKidId] = useState<string | null>(null);
+  const [showDeleteHousehold, setShowDeleteHousehold] = useState(false);
+  const [deletingHousehold, setDeletingHousehold] = useState(false);
 
   useEffect(() => {
     saveLastHouseholdId(householdId);
@@ -95,6 +103,59 @@ export function SetupView({ householdId }: { householdId: string }) {
     });
     setSaving(false);
     setMessage(res.ok ? "Saved" : "Could not save");
+  }
+
+  async function removeKid(kid: KidLink) {
+    if (
+      !window.confirm(
+        `Remove ${kid.name} from this household? Their link will stop working.`,
+      )
+    ) {
+      return;
+    }
+    setRemovingKidId(kid.id);
+    setMessage(null);
+    const res = await fetch(
+      `/api/households/${householdId}/kids/${kid.id}`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      },
+    );
+    setRemovingKidId(null);
+    if (res.ok) {
+      await load();
+      setMessage(`${kid.name} removed`);
+    } else {
+      const data = await res.json();
+      setMessage(data.error ?? "Could not remove");
+    }
+  }
+
+  async function deleteHousehold() {
+    if (
+      !window.confirm(
+        "Delete this entire household? All kid links and turn history will be gone. This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    setDeletingHousehold(true);
+    setMessage(null);
+    const res = await fetch(`/api/households/${householdId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: true, pin }),
+    });
+    setDeletingHousehold(false);
+    if (res.ok) {
+      clearLastHouseholdId();
+      router.push("/");
+      return;
+    }
+    const data = await res.json();
+    setMessage(data.error ?? "Could not delete household");
   }
 
   if (!settings) {
@@ -228,6 +289,10 @@ export function SetupView({ householdId }: { householdId: string }) {
                   ? `${window.location.origin}${k.sharePath}`
                   : k.sharePath)
               }
+              onRemove={
+                kids.length > 1 ? () => void removeKid(k) : undefined
+              }
+              removing={removingKidId === k.id}
             />
           ))}
         </ul>
@@ -257,6 +322,37 @@ export function SetupView({ householdId }: { householdId: string }) {
               label="Copy ID"
               variant="pill"
             />
+          </div>
+        ) : null}
+      </Card>
+
+      <Card className="border-rose-500/20">
+        <SectionTitle>Danger zone</SectionTitle>
+        <p className="mb-3 text-sm text-slate-400">
+          Remove a kid with Remove on their row above. Delete the whole household
+          below.
+        </p>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between text-left text-sm font-semibold text-slate-300"
+          onClick={() => setShowDeleteHousehold((v) => !v)}
+          aria-expanded={showDeleteHousehold}
+        >
+          Delete household
+          <span className="text-rose-300">
+            {showDeleteHousehold ? "−" : "+"}
+          </span>
+        </button>
+        {showDeleteHousehold ? (
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <PrimaryButton
+              variant="danger"
+              disabled={deletingHousehold}
+              loading={deletingHousehold}
+              onClick={() => void deleteHousehold()}
+            >
+              Delete household permanently
+            </PrimaryButton>
           </div>
         ) : null}
       </Card>
