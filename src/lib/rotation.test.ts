@@ -56,3 +56,46 @@ describe("turn helpers", () => {
     assert.equal(routineComplete(order, 1), false);
   });
 });
+
+/** Mirrors getOrCreateDayState order rules (base sort = Child A, B, …). */
+function ordersForDay(
+  base: string[],
+  dayOffset: number,
+  yesterdayEveningFirst: string | null,
+) {
+  const eveningOrder = computeEveningOrder(base, dayOffset);
+  const morningOrder = computeMorningOrder(
+    base,
+    yesterdayEveningFirst,
+    eveningOrder,
+  );
+  return { eveningOrder, morningOrder };
+}
+
+describe("family rotation scenario (Child A first in setup)", () => {
+  const A = "child-a";
+  const B = "child-b";
+  const base = [A, B];
+
+  it("night 1: A first shower; same calendar morning already had A first", () => {
+    const { eveningOrder, morningOrder } = ordersForDay(base, 0, null);
+    assert.deepEqual(eveningOrder, [A, B]);
+    assert.deepEqual(morningOrder, [A, B]);
+    assert.equal(currentTurnKidId(eveningOrder, 0), A);
+    assert.equal(currentTurnKidId(morningOrder, 0), A);
+  });
+
+  it("day 2: evening rotates; morning leads with whoever showered first last night", () => {
+    const { eveningOrder, morningOrder } = ordersForDay(base, 1, A);
+    assert.deepEqual(eveningOrder, [B, A]);
+    assert.deepEqual(morningOrder, [A, B]);
+    assert.equal(currentTurnKidId(eveningOrder, 0), B);
+    assert.equal(currentTurnKidId(morningOrder, 0), A);
+  });
+
+  it("day 3: evening rotates again; morning follows new yesterday-first", () => {
+    const { eveningOrder, morningOrder } = ordersForDay(base, 2, B);
+    assert.deepEqual(eveningOrder, [A, B]);
+    assert.deepEqual(morningOrder, [B, A]);
+  });
+});
