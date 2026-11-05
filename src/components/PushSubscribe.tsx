@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -20,10 +20,46 @@ async function registerForPush() {
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
-export function PushSubscribe({ shareToken }: { shareToken: string }) {
+export function PushSubscribe({
+  shareToken,
+  urgent = false,
+  onEnabled,
+}: {
+  shareToken: string;
+  /** Stronger prompt when it's this kid's turn but alerts aren't on yet. */
+  urgent?: boolean;
+  onEnabled?: () => void;
+}) {
   const [status, setStatus] = useState<
-    "idle" | "unsupported" | "denied" | "ready" | "done"
-  >("idle");
+    "loading" | "idle" | "unsupported" | "denied" | "ready" | "done"
+  >("loading");
+
+  const syncSubscriptionState = useCallback(async () => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setStatus("unsupported");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      setStatus("denied");
+      return;
+    }
+    try {
+      const reg = await registerForPush();
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        setStatus("done");
+        onEnabled?.();
+        return;
+      }
+    } catch {
+      /* registration blocked */
+    }
+    setStatus("idle");
+  }, []);
+
+  useEffect(() => {
+    void syncSubscriptionState();
+  }, [syncSubscriptionState]);
 
   const subscribe = useCallback(async () => {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
@@ -51,10 +87,13 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
     }
     await navigator.serviceWorker.ready;
 
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
 
     const json = sub.toJSON();
     await fetch(`/api/k/${encodeURIComponent(shareToken)}/push`, {
@@ -66,7 +105,12 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
       }),
     });
     setStatus("done");
-  }, [shareToken]);
+    onEnabled?.();
+  }, [shareToken, onEnabled]);
+
+  if (status === "loading") {
+    return null;
+  }
 
   if (status === "done") {
     return (
@@ -77,7 +121,7 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
         >
           ✓
         </span>
-        Turn alerts enabled
+        Turn alarms on — we&apos;ll notify you when it&apos;s your turn
       </p>
     );
   }
@@ -85,23 +129,43 @@ export function PushSubscribe({ shareToken }: { shareToken: string }) {
   if (status === "unsupported") {
     return (
       <p className="rounded-2xl border border-amber-500/20 bg-amber-950/20 px-3 py-2 text-sm text-amber-100/90">
-        Use Safari on iPhone for turn alerts.
+        Add this page to your home screen, then turn on alerts (Safari on iPhone).
       </p>
     );
   }
 
+  if (status === "ready") {
+    return (
+      <p className="rounded-2xl border border-amber-500/20 bg-amber-950/20 px-3 py-2 text-sm text-amber-100/90">
+        Turn alerts aren&apos;t set up on the server yet. Ask a parent to check
+        VAPID keys in Vercel.
+      </p>
+    );
+  }
+
+  const buttonClass = urgent
+    ? "flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/40 bg-gradient-to-r from-rose-500/20 to-orange-500/20 py-4 text-sm font-bold text-rose-50 shadow-md animate-pulse transition active:scale-[0.99]"
+    : "flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 py-3.5 text-sm font-semibold text-indigo-50 shadow-sm transition active:scale-[0.99]";
+
   return (
-    <button
-      type="button"
-      onClick={subscribe}
-      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-400/35 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 py-3.5 text-sm font-semibold text-indigo-50 shadow-sm transition active:scale-[0.99]"
-    >
-      <span aria-hidden className="text-base">
-        🔔
-      </span>
-      {status === "denied"
-        ? "Notifications blocked — open Settings"
-        : "Turn on alerts"}
-    </button>
+    <div className="flex flex-col gap-2">
+      {urgent ? (
+        <p className="text-center text-sm font-medium text-rose-200/90">
+          Turn on alarms so you get a loud nudge when it&apos;s your turn
+        </p>
+      ) : (
+        <p className="text-center text-xs text-slate-500">
+          One tap — automatic alarm at your scheduled turn
+        </p>
+      )}
+      <button type="button" onClick={subscribe} className={buttonClass}>
+        <span aria-hidden className="text-base">
+          🔔
+        </span>
+        {status === "denied"
+          ? "Notifications blocked — open Settings"
+          : "Turn on turn alarms"}
+      </button>
+    </div>
   );
 }

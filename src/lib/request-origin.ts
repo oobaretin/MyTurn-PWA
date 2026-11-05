@@ -20,9 +20,27 @@ export function requestOrigin(request: Request): string {
   return `${proto}://${host}`;
 }
 
+export function appPublicOrigin(): string {
+  return (
+    canonicalProductionOrigin() ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`
+      : "")
+  );
+}
+
 export function kidShareUrl(request: Request, shareToken: string): string {
   const origin = canonicalProductionOrigin() || requestOrigin(request);
   if (!origin) return `/k/${shareToken}`;
   return `${origin}/k/${shareToken}`;
+}
+
+export function alarmPathForKid(
+  shareToken: string,
+  routine: "evening" | "morning",
+): string {
+  const path = `/k/${shareToken}/alarm?routine=${routine}`;
+  const origin = appPublicOrigin();
+  return origin ? `${origin}${path}` : path;
 }
 

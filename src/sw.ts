@@ -58,6 +58,8 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       data: { url },
+      tag: "myturn-turn",
+      renotify: true,
       requireInteraction: true,
     }),
   );

@@ -8,7 +8,7 @@ import {
   currentTurnKidId,
   routineComplete,
 } from "@/lib/rotation";
-import { sendPushToKid } from "@/lib/push";
+import { notifyKidTurnAlarm } from "@/lib/turn-notify";
 
 export type Routine = "evening" | "morning";
 
@@ -179,18 +179,14 @@ export async function performTurnAction(
     !routineComplete(order, nextIndex) &&
     (action === "done" || action === "skip")
   ) {
-    const nextKid = await db
+    const [nextKid] = await db
       .select()
       .from(schema.kids)
       .where(eq(schema.kids.id, nextKidId))
       .limit(1);
-    const name = nextKid[0]?.name ?? "Your turn";
-    const label = routine === "evening" ? "Shower time" : "Get ready";
-    await sendPushToKid(nextKidId, {
-      title: `${label}!`,
-      body: `${name}, it's your turn.`,
-      url: `/k/${nextKid[0]?.shareToken ?? ""}/alarm?routine=${routine}`,
-    });
+    if (nextKid) {
+      await notifyKidTurnAlarm(updated.id, routine, nextIndex, nextKid);
+    }
   }
 
   return updated;

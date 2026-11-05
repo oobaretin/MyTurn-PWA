@@ -3,9 +3,7 @@ import { getDb, schema } from "@/db";
 import { isSchoolDay, slotStartUtc, todayInTimezone } from "@/lib/dates";
 import { getOrCreateDayState } from "@/lib/day-state";
 import { currentTurnKidId, routineComplete } from "@/lib/rotation";
-import { sendPushToKid } from "@/lib/push";
-
-type Routine = "evening" | "morning";
+import { notifyKidTurnAlarm, type Routine } from "@/lib/turn-notify";
 
 async function maybeNotifyRoutine(
   household: typeof schema.households.$inferSelect,
@@ -26,10 +24,6 @@ async function maybeNotifyRoutine(
     routine === "evening"
       ? dayState.eveningTurnIndex
       : dayState.morningTurnIndex;
-  const lastIndex =
-    routine === "evening"
-      ? dayState.eveningLastNotifiedIndex
-      : dayState.morningLastNotifiedIndex;
 
   if (routineComplete(order, turnIndex)) return;
 
@@ -49,7 +43,6 @@ async function maybeNotifyRoutine(
   );
 
   if (now < slotStart) return;
-  if (lastIndex >= turnIndex) return;
 
   const db = getDb();
   const [kid] = await db
@@ -59,28 +52,7 @@ async function maybeNotifyRoutine(
     .limit(1);
   if (!kid) return;
 
-  const label = routine === "evening" ? "Shower time" : "Get ready for school";
-  await sendPushToKid(kidId, {
-    title: `${label}!`,
-    body: `${kid.name}, it's your turn.`,
-    url: `/k/${kid.shareToken}/alarm?routine=${routine}`,
-  });
-
-  const patch =
-    routine === "evening"
-      ? {
-          eveningLastNotifiedIndex: turnIndex,
-          eveningLastNotifiedAt: now,
-        }
-      : {
-          morningLastNotifiedIndex: turnIndex,
-          morningLastNotifiedAt: now,
-        };
-
-  await db
-    .update(schema.dayStates)
-    .set(patch)
-    .where(eq(schema.dayStates.id, dayState.id));
+  await notifyKidTurnAlarm(dayState.id, routine, turnIndex, kid);
 }
 
 export async function runCronTick(): Promise<{ households: number }> {

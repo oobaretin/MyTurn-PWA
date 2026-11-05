@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
@@ -72,7 +73,10 @@ export function KidTurnView({
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
   const [showLineup, setShowLineup] = useState(false);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
   const firstLoad = useRef(true);
+  const prevIsMyTurn = useRef(false);
+  const router = useRouter();
 
   const countdown = useCountdownMinutes(
     state && !state.isMyTurn ? state.slotStartIso : undefined,
@@ -103,6 +107,38 @@ export function KidTurnView({
     const t = setInterval(load, 10_000);
     return () => clearInterval(t);
   }, [load]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    void (async () => {
+      if (Notification.permission !== "granted") {
+        setAlertsEnabled(false);
+        return;
+      }
+      const reg = await navigator.serviceWorker?.getRegistration("/");
+      const sub = await reg?.pushManager.getSubscription();
+      setAlertsEnabled(!!sub);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!state || state.complete) return;
+    if (!state.isMyTurn) {
+      prevIsMyTurn.current = false;
+      return;
+    }
+    const becameMine = !prevIsMyTurn.current;
+    prevIsMyTurn.current = true;
+    if (!becameMine) return;
+
+    const key = `myturn-alarm-${routine}-${state.turnIndex}`;
+    if (sessionStorage.getItem(key)) return;
+
+    sessionStorage.setItem(key, "1");
+    router.push(
+      `/k/${encodeURIComponent(shareToken)}/alarm?routine=${routine}`,
+    );
+  }, [state, routine, shareToken, router]);
 
   async function act(action: "start" | "done") {
     setActing(true);
@@ -178,6 +214,14 @@ export function KidTurnView({
         </StatusBanner>
       ) : state ? (
         <div className="animate-fade-up flex flex-col gap-4 pb-32">
+          {!alertsEnabled && !state.complete ? (
+            <PushSubscribe
+              shareToken={shareToken}
+              urgent={state.isMyTurn}
+              onEnabled={() => setAlertsEnabled(true)}
+            />
+          ) : null}
+
           <Card className="relative overflow-hidden">
             {state.isMyTurn && !state.complete ? (
               <div
@@ -280,7 +324,9 @@ export function KidTurnView({
             ) : null}
           </Card>
 
-          <PushSubscribe shareToken={shareToken} />
+          {alertsEnabled ? (
+            <PushSubscribe shareToken={shareToken} />
+          ) : null}
         </div>
       ) : null}
 

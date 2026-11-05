@@ -212,7 +212,9 @@ export function SetupView({ householdId }: { householdId: string }) {
       <Card>
         <SectionTitle>Kid links</SectionTitle>
         <p className="mb-3 text-sm text-slate-400">
-          Each child opens their link on their phone for turns and alerts.
+          Each child opens their link and taps Turn on turn alarms once for
+          automatic notifications at their scheduled turn (and when the sibling
+          ahead taps Done).
         </p>
         <ul className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-black/20">
           {kids.map((k) => (

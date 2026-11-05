@@ -14,7 +14,7 @@ export function WelcomeKidLinks({
     <Card className="border-indigo-400/25 bg-indigo-500/10">
       <SectionTitle>Send each kid their link</SectionTitle>
       <p className="mb-3 text-sm text-slate-300">
-        Tap Copy or Share so they can open MyTurn on their phone.
+        Send each link, then have them tap <strong className="font-semibold text-white">Turn on turn alarms</strong> once — they&apos;ll get an automatic alarm when it&apos;s their turn.
       </p>
       <ul className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-black/20">
         {kids.map((k) => (
